@@ -88,6 +88,7 @@ spinWheelButton.addEventListener('click', () => {
 downloadVideoButton.addEventListener('click', () => {
     const targetNumber = parseInt(targetNumberInput.value);
     if (targetNumber >= 0 && targetNumber <= 1000) {
+        console.log('Start GIF generatie voor nummer:', targetNumber);
         downloadVideoButton.disabled = true;
         downloadVideoButton.textContent = 'GIF wordt gegenereerd...';
         
@@ -98,18 +99,26 @@ downloadVideoButton.addEventListener('click', () => {
             height: 540
         });
 
+        console.log('GIF object aangemaakt');
+
         const canvas = document.createElement('canvas');
         canvas.width = 960;
         canvas.height = 540;
         const ctx = canvas.getContext('2d');
+
+        console.log('Canvas aangemaakt');
 
         const background = new Image();
         background.src = 'background.jpg';
         const wheel = new Image();
         wheel.src = 'wheel.png';
 
+        console.log('Afbeeldingen worden geladen');
+
         background.onload = () => {
+            console.log('Achtergrond geladen');
             wheel.onload = () => {
+                console.log('Wiel geladen, start frame generatie');
                 const frameCount = 60; // 2 seconds at 30 fps
                 for (let i = 0; i < frameCount; i++) {
                     ctx.drawImage(background, 0, 0, 960, 540);
@@ -126,7 +135,14 @@ downloadVideoButton.addEventListener('click', () => {
                     gif.addFrame(ctx, {copy: true, delay: 33});
                 }
                 
+                console.log('Alle frames toegevoegd, start rendering');
+                
+                gif.on('progress', function(p) {
+                    console.log('Rendering voortgang:', Math.round(p * 100) + '%');
+                });
+
                 gif.on('finished', function(blob) {
+                    console.log('GIF rendering voltooid');
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -138,6 +154,7 @@ downloadVideoButton.addEventListener('click', () => {
                     
                     downloadVideoButton.disabled = false;
                     downloadVideoButton.textContent = 'Download GIF';
+                    console.log('GIF download gestart');
                 });
                 
                 gif.render();
