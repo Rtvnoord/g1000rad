@@ -70,3 +70,19 @@ button, input {
     padding: 10px;
     font-size: 16px;
 }
+
+#progressBarContainer {
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    margin-top: 10px;
+    display: none;
+}
+
+#progressBar {
+    width: 0;
+    height: 20px;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    transition: width 0.3s ease-in-out;
+}
