@@ -85,9 +85,40 @@ spinWheelButton.addEventListener('click', () => {
 
 // Verwijder de bestaande DOMContentLoaded event listener
 
-downloadVideoButton.addEventListener('click', () => {
-    alert('Video downloaden is nog niet geïmplementeerd.');
-});document.addEventListener('DOMContentLoaded', () => {
+downloadVideoButton.addEventListener('click', async () => {
+    const targetNumber = parseInt(targetNumberInput.value);
+    if (targetNumber >= 0 && targetNumber <= 1000) {
+        downloadVideoButton.disabled = true;
+        downloadVideoButton.textContent = 'Video wordt gegenereerd...';
+        
+        try {
+            const response = await fetch('/generate-video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ targetNumber }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate video');
+            }
+            
+            const { videoPath } = await response.json();
+            window.location.href = `/download-video/${videoPath}`;
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Er is een fout opgetreden bij het genereren van de video.');
+        } finally {
+            downloadVideoButton.disabled = false;
+            downloadVideoButton.textContent = 'Download video';
+        }
+    } else {
+        alert('Voer een geldig nummer in tussen 0 en 1000.');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     const numberDisplay = document.getElementById('number-display');
     const randomNumber = Math.floor(Math.random() * 100) + 1; // Genereer een willekeurig nummer tussen 1 en 100
 
