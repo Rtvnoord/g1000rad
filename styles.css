@@ -71,32 +71,4 @@ body {
 button, input {
     padding: 10px;
     font-size: 16px;
-}@font-face {
-    font-family: 'DIN-MediumAlternate';
-    src: url('DIN-MediumAlternate.otf') format('opentype');
-}
-
-body {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f0f0f0;
-}
-
-#animation-container {
-    width: 200px;
-    height: 200px;
-    background-color: #FF6600; /* Oranje achtergrond */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#number-display {
-    font-family: 'DIN-MediumAlternate', sans-serif;
-    font-size: 48px;
-    color: white;
 }
