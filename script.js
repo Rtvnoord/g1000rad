@@ -8,6 +8,9 @@ const numberDisplay = document.getElementById('number-display');
 
 // Functie om het rad te draaien
 function spinWheel(targetNumber) {
+    // Verberg het nummer-container voordat het rad begint te draaien
+    gsap.set("#number-container", { opacity: 0, scale: 0 });
+
     // Bereken het aantal graden dat het rad moet draaien
     // We gaan ervan uit dat het rad 360 graden verdeeld over 1000 nummers heeft
     const degreesPerNumber = 360 / 1000;
@@ -21,20 +24,33 @@ function spinWheel(targetNumber) {
     wheel.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)';
     wheel.style.transform = `translate(-50%, -50%) rotate(${totalDegrees}deg)`;
 
-    // Reset de transitie na de animatie
+    // Reset de transitie en toon het nummer na de animatie
     setTimeout(() => {
         wheel.style.transition = 'none';
         wheel.style.transform = `translate(-50%, -50%) rotate(${degrees}deg)`;
-        animateNumber(targetNumber);
+        animateNumberContainer(targetNumber);
     }, 4000);
 }
 
-// Functie om het nummer te animeren
-function animateNumber(number) {
+// Functie om het nummer-container te animeren
+function animateNumberContainer(number) {
+    const numberContainer = document.getElementById('number-container');
     numberDisplay.textContent = number;
+
+    gsap.to(numberContainer, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.5,
+        ease: "back.out(1.7)",
+        onComplete: () => animateNumber()
+    });
+}
+
+// Functie om het nummer te animeren
+function animateNumber() {
     gsap.fromTo(numberDisplay, 
         { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 1, ease: "back.out(1.7)" }
+        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
     );
 }
 
