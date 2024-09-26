@@ -49,4 +49,16 @@ spinWheelButton.addEventListener('click', () => {
 
 downloadVideoButton.addEventListener('click', () => {
     alert('Video downloaden is nog niet geïmplementeerd.');
+});document.addEventListener('DOMContentLoaded', () => {
+    const numberDisplay = document.getElementById('number-display');
+    const randomNumber = Math.floor(Math.random() * 100) + 1; // Genereer een willekeurig nummer tussen 1 en 100
+
+    // Animatie voor het tevoorschijn komen van het nummer
+    gsap.fromTo(numberDisplay, 
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 1, ease: "back.out(1.7)", delay: 0.5 }
+    );
+
+    // Zet het nummer in het element
+    numberDisplay.textContent = randomNumber;
 });
