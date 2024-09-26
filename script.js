@@ -85,34 +85,64 @@ spinWheelButton.addEventListener('click', () => {
 
 // Verwijder de bestaande DOMContentLoaded event listener
 
-downloadVideoButton.addEventListener('click', async () => {
+downloadVideoButton.addEventListener('click', () => {
     const targetNumber = parseInt(targetNumberInput.value);
     if (targetNumber >= 0 && targetNumber <= 1000) {
         downloadVideoButton.disabled = true;
-        downloadVideoButton.textContent = 'Video wordt gegenereerd...';
+        downloadVideoButton.textContent = 'GIF wordt gegenereerd...';
         
-        try {
-            const response = await fetch('/generate-video', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ targetNumber }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to generate video');
-            }
-            
-            const { videoPath } = await response.json();
-            window.location.href = `/download-video/${videoPath}`;
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Er is een fout opgetreden bij het genereren van de video.');
-        } finally {
-            downloadVideoButton.disabled = false;
-            downloadVideoButton.textContent = 'Download video';
-        }
+        const gif = new GIF({
+            workers: 2,
+            quality: 10,
+            width: 960,
+            height: 540
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 960;
+        canvas.height = 540;
+        const ctx = canvas.getContext('2d');
+
+        const background = new Image();
+        background.src = 'background.jpg';
+        const wheel = new Image();
+        wheel.src = 'wheel.png';
+
+        background.onload = () => {
+            wheel.onload = () => {
+                const frameCount = 60; // 2 seconds at 30 fps
+                for (let i = 0; i < frameCount; i++) {
+                    ctx.drawImage(background, 0, 0, 960, 540);
+                    
+                    const progress = i / frameCount;
+                    const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
+                    
+                    ctx.save();
+                    ctx.translate(480, 270);
+                    ctx.rotate(rotation * Math.PI / 180);
+                    ctx.drawImage(wheel, -75, -75, 150, 150);
+                    ctx.restore();
+                    
+                    gif.addFrame(ctx, {copy: true, delay: 33});
+                }
+                
+                gif.on('finished', function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'wheel_spin.gif';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    downloadVideoButton.disabled = false;
+                    downloadVideoButton.textContent = 'Download GIF';
+                });
+                
+                gif.render();
+            };
+        };
     } else {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
     }
