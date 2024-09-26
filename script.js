@@ -47,8 +47,12 @@ function animateNumberContainer(number) {
 
     // Centreer het nummer-container in het wheel-container
     const wheelContainer = document.getElementById('wheel-container');
-    numberContainer.style.left = `${wheelContainer.offsetWidth / 2}px`;
-    numberContainer.style.top = `${wheelContainer.offsetHeight / 2}px`;
+    gsap.set(numberContainer, {
+        left: '50%',
+        top: '50%',
+        xPercent: -50,
+        yPercent: -50
+    });
 }
 
 // Functie om het nummer te animeren
