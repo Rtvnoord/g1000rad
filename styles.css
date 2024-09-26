@@ -47,7 +47,8 @@ body {
     transform: translate(-50%, -50%);
     width: 100px;
     height: 100px;
-    background-color: #FF6600; /* Oranje achtergrond */
+    background-color: #ee7204; /* Nieuwe oranje kleur */
+    border: 2px solid white; /* Witte rand */
     display: flex;
     justify-content: center;
     align-items: center;

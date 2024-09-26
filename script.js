@@ -44,6 +44,11 @@ function animateNumberContainer(number) {
         ease: "back.out(1.7)",
         onComplete: () => animateNumber()
     });
+
+    // Centreer het nummer-container in het wheel-container
+    const wheelContainer = document.getElementById('wheel-container');
+    numberContainer.style.left = `${wheelContainer.offsetWidth / 2}px`;
+    numberContainer.style.top = `${wheelContainer.offsetHeight / 2}px`;
 }
 
 // Functie om het nummer te animeren
