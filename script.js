@@ -104,7 +104,7 @@ downloadVideoButton.addEventListener('click', () => {
         const canvas = document.createElement('canvas');
         canvas.width = 960;
         canvas.height = 540;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         console.log('Canvas aangemaakt');
 
@@ -120,25 +120,37 @@ downloadVideoButton.addEventListener('click', () => {
             wheel.onload = () => {
                 console.log('Wiel geladen, start frame generatie');
                 const frameCount = 60; // 2 seconds at 30 fps
-                for (let i = 0; i < frameCount; i++) {
-                    ctx.drawImage(background, 0, 0, 960, 540);
-                    
-                    const progress = i / frameCount;
-                    const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
-                    
-                    ctx.save();
-                    ctx.translate(480, 270);
-                    ctx.rotate(rotation * Math.PI / 180);
-                    ctx.drawImage(wheel, -75, -75, 150, 150);
-                    ctx.restore();
-                    
-                    gif.addFrame(ctx, {copy: true, delay: 33});
+                let currentFrame = 0;
+
+                function addFrame() {
+                    if (currentFrame < frameCount) {
+                        ctx.drawImage(background, 0, 0, 960, 540);
+                        
+                        const progress = currentFrame / frameCount;
+                        const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
+                        
+                        ctx.save();
+                        ctx.translate(480, 270);
+                        ctx.rotate(rotation * Math.PI / 180);
+                        ctx.drawImage(wheel, -75, -75, 150, 150);
+                        ctx.restore();
+                        
+                        gif.addFrame(ctx, {copy: true, delay: 33});
+                        
+                        currentFrame++;
+                        requestAnimationFrame(addFrame);
+                    } else {
+                        console.log('Alle frames toegevoegd, start rendering');
+                        gif.render();
+                    }
                 }
-                
-                console.log('Alle frames toegevoegd, start rendering');
+
+                addFrame();
                 
                 gif.on('progress', function(p) {
-                    console.log('Rendering voortgang:', Math.round(p * 100) + '%');
+                    const progress = Math.round(p * 100);
+                    console.log('Rendering voortgang:', progress + '%');
+                    downloadVideoButton.textContent = `Rendering: ${progress}%`;
                 });
 
                 gif.on('finished', function(blob) {
