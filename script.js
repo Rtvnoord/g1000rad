@@ -4,6 +4,7 @@ const targetNumberInput = document.getElementById('targetNumber');
 const generateRandomButton = document.getElementById('generateRandom');
 const spinWheelButton = document.getElementById('spinWheel');
 const downloadVideoButton = document.getElementById('downloadVideo');
+const numberDisplay = document.getElementById('number-display');
 
 // Functie om het rad te draaien
 function spinWheel(targetNumber) {
@@ -24,7 +25,17 @@ function spinWheel(targetNumber) {
     setTimeout(() => {
         wheel.style.transition = 'none';
         wheel.style.transform = `translate(-50%, -50%) rotate(${degrees}deg)`;
+        animateNumber(targetNumber);
     }, 4000);
+}
+
+// Functie om het nummer te animeren
+function animateNumber(number) {
+    numberDisplay.textContent = number;
+    gsap.fromTo(numberDisplay, 
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 1, ease: "back.out(1.7)" }
+    );
 }
 
 // Functie om een willekeurig nummer te genereren
@@ -46,6 +57,8 @@ spinWheelButton.addEventListener('click', () => {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
     }
 });
+
+// Verwijder de bestaande DOMContentLoaded event listener
 
 downloadVideoButton.addEventListener('click', () => {
     alert('Video downloaden is nog niet geïmplementeerd.');

@@ -40,6 +40,28 @@ body {
     transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+#number-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    background-color: #FF6600; /* Oranje achtergrond */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#number-display {
+    font-family: 'Arial', sans-serif;
+    font-size: 48px;
+    color: white;
+    opacity: 0;
+    transform: scale(0);
+}
+
 .controls {
     display: flex;
     flex-direction: column;
