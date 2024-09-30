@@ -38,21 +38,21 @@ function animateNumberContainer(number) {
     const numberContainer = document.getElementById('number-container');
     numberDisplay.textContent = number;
 
+    gsap.set(numberContainer, {
+        opacity: 0,
+        scale: 0,
+        left: '50%',
+        top: '50%',
+        xPercent: -50,
+        yPercent: -50
+    });
+
     gsap.to(numberContainer, {
         opacity: 1,
         scale: 1,
         duration: 0.5,
         ease: "back.out(1.7)",
         onComplete: () => animateNumber()
-    });
-
-    // Centreer het nummer-container in het wheel-container
-    const wheelContainer = document.getElementById('wheel-container');
-    gsap.set(numberContainer, {
-        left: '50%',
-        top: '50%',
-        xPercent: -50,
-        yPercent: -50
     });
 }
 
@@ -135,8 +135,9 @@ downloadVideoButton.addEventListener('click', async () => {
         progressBar.style.width = '0%';
         progressBar.style.display = 'block';
 
-        const frameCount = 180; // 6 seconds at 30 fps
+        const frameCount = 480; // 16 seconds at 30 fps (6 seconds spinning + 10 seconds static)
         const fps = 30;
+        const spinDuration = 180; // 6 seconds of spinning
         const width = 960;
         const height = 540;
 
@@ -154,21 +155,24 @@ downloadVideoButton.addEventListener('click', async () => {
         const targetDegrees = targetNumber * (360 / 1000);
         const totalDegrees = targetDegrees + extraSpins;
 
+        let lastFrame;
         for (let i = 0; i < frameCount; i++) {
-            ctx.drawImage(background, 0, 0, width, height);
+            if (i < spinDuration) {
+                ctx.drawImage(background, 0, 0, width, height);
+                
+                const progress = i / spinDuration;
+                const easeProgress = easeOutCubic(progress);
+                const rotation = easeProgress * totalDegrees;
+                
+                ctx.save();
+                ctx.translate(width / 2, height / 2);
+                ctx.rotate(rotation * Math.PI / 180);
+                ctx.drawImage(wheel, -150, -150, 300, 300);
+                ctx.restore();
+            }
             
-            const progress = i / frameCount;
-            const easeProgress = easeOutCubic(progress);
-            const rotation = easeProgress * totalDegrees;
-            
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.rotate(rotation * Math.PI / 180);
-            ctx.drawImage(wheel, -150, -150, 300, 300);
-            ctx.restore();
-            
-            if (i === frameCount - 1) {
-                // Toon het nummer op het laatste frame
+            if (i === spinDuration - 1 || (i >= spinDuration && !lastFrame)) {
+                // Toon het nummer op het laatste frame van de spin en houd het voor de rest van de video
                 const numberContainer = document.createElement('div');
                 numberContainer.style.position = 'absolute';
                 numberContainer.style.left = '50%';
@@ -196,13 +200,16 @@ downloadVideoButton.addEventListener('click', async () => {
                 try {
                     const numberCanvas = await html2canvas(numberContainer);
                     tempCtx.drawImage(numberCanvas, (width - 100) / 2, (height - 100) / 2);
-                    const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
-                    ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+                    lastFrame = tempCanvas.toDataURL('image/png').split(',')[1];
                 } catch (error) {
                     console.error('Error bij het genereren van het laatste frame:', error);
                 } finally {
                     document.body.removeChild(numberContainer);
                 }
+            }
+            
+            if (i >= spinDuration && lastFrame) {
+                ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(lastFrame), c => c.charCodeAt(0)));
             } else {
                 const frameData = canvas.toDataURL('image/png').split(',')[1];
                 ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
