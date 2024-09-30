@@ -51,8 +51,10 @@ body {
     align-items: center;
     z-index: 10;
     opacity: 0;
-    transform: scale(0);
+    transform: translate(-50%, -50%) scale(0);
     border-radius: 0; /* Verwijder afgeronde hoeken */
+    left: 50%;
+    top: 50%;
 }
 
 #number-display {

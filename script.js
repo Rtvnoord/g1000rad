@@ -41,28 +41,15 @@ function animateNumberContainer(number) {
 
     gsap.set(numberContainer, {
         opacity: 0,
-        scale: 0,
-        left: '50%',
-        top: '50%',
-        xPercent: -50,
-        yPercent: -50
+        scale: 0
     });
 
     gsap.to(numberContainer, {
         opacity: 1,
         scale: 1,
         duration: 0.8,
-        ease: "back.out(1.7)",
-        onComplete: () => animateNumber()
+        ease: "back.out(1.7)"
     });
-}
-
-// Functie om het nummer te animeren
-function animateNumber() {
-    gsap.fromTo("#number-display", 
-        { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
-    );
 }
 
 // Functie om een willekeurig nummer te genereren
@@ -201,7 +188,7 @@ async function generateAndDownloadVideo(targetNumber) {
             numberContainer.style.height = '120px';
             numberContainer.style.backgroundColor = '#ee7204';
             numberContainer.style.border = '4px solid white';
-            numberContainer.style.borderRadius = '10px';
+            numberContainer.style.borderRadius = '0';
             numberContainer.style.display = 'flex';
             numberContainer.style.justifyContent = 'center';
             numberContainer.style.alignItems = 'center';
@@ -324,16 +311,3 @@ function loadImage(src) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const numberDisplay = document.getElementById('number-display');
-    const randomNumber = Math.floor(Math.random() * 100) + 1; // Genereer een willekeurig nummer tussen 1 en 100
-
-    // Animatie voor het tevoorschijn komen van het nummer
-    gsap.fromTo(numberDisplay, 
-        { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 1, ease: "back.out(1.7)", delay: 0.5 }
-    );
-
-    // Zet het nummer in het element
-    numberDisplay.textContent = randomNumber;
-});
