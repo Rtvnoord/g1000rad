@@ -114,6 +114,11 @@ downloadVideoButton.addEventListener('click', async () => {
         progressBar.style.width = '0%';
         progressBar.style.display = 'block';
 
+        const frameCount = 300; // 10 seconds at 30 fps
+        const fps = 30;
+        const width = 1920;
+        const height = 1080;
+
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
@@ -123,10 +128,6 @@ downloadVideoButton.addEventListener('click', async () => {
         const wheel = await loadImage('wheel.png');
 
         console.log('Alle afbeeldingen geladen, start frame generatie');
-        const frameCount = 300; // 10 seconds at 30 fps
-        const fps = 30;
-        const width = 1920;
-        const height = 1080;
 
         for (let i = 0; i < frameCount; i++) {
             ctx.drawImage(background, 0, 0, width, height);
