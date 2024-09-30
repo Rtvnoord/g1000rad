@@ -79,14 +79,21 @@ spinWheelButton.addEventListener('click', () => {
     const targetNumber = parseInt(targetNumberInput.value);
     if (targetNumber >= 0 && targetNumber <= 1000) {
         spinWheel(targetNumber);
+        downloadVideoButton.disabled = false; // Enable the download button after spinning
     } else {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
     }
 });
 
+// Disable the download button initially
+downloadVideoButton.disabled = true;
+
 // Verwijder de bestaande DOMContentLoaded event listener
 
 let ffmpeg;
+
+// Disable the download button initially
+downloadVideoButton.disabled = true;
 
 const { createFFmpeg, fetchFile } = FFmpeg;
 
