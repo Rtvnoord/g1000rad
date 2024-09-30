@@ -105,17 +105,23 @@ async function loadDependencies() {
     console.log('FFmpeg is geladen');
 
     // Load html2canvas
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-        script.onload = () => {
-            console.log('html2canvas is geladen');
-            html2canvasLoaded = true;
-            resolve();
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
+    if (typeof html2canvas === 'undefined') {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'html2canvas.min.js';
+            script.onload = () => {
+                console.log('html2canvas is geladen');
+                html2canvasLoaded = true;
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    } else {
+        console.log('html2canvas is al geladen');
+        html2canvasLoaded = true;
+        return Promise.resolve();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', loadDependencies);
