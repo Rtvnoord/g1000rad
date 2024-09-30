@@ -86,109 +86,99 @@ spinWheelButton.addEventListener('click', () => {
 
 // Verwijder de bestaande DOMContentLoaded event listener
 
-downloadVideoButton.addEventListener('click', () => {
+let ffmpeg;
+
+const { createFFmpeg, fetchFile } = FFmpeg;
+
+async function loadFFmpeg() {
+    ffmpeg = createFFmpeg({ log: true });
+    await ffmpeg.load();
+    console.log('FFmpeg is geladen');
+}
+
+loadFFmpeg();
+
+downloadVideoButton.addEventListener('click', async () => {
     const targetNumber = parseInt(targetNumberInput.value);
-    if (targetNumber >= 0 && targetNumber <= 1000) {
-        console.log('Start GIF generatie voor nummer:', targetNumber);
+    if (targetNumber >= 0 && targetNumber <= 1000 && ffmpeg.isLoaded()) {
+        console.log('Start MP4 generatie voor nummer:', targetNumber);
         downloadVideoButton.disabled = true;
-        downloadVideoButton.textContent = 'GIF wordt gegenereerd...';
+        downloadVideoButton.textContent = 'Video wordt gegenereerd...';
         progressBar.style.width = '0%';
         progressBar.style.display = 'block';
-        
-        const gif = new GIF({
-            workers: 2,
-            quality: 10,
-            width: 960,
-            height: 540
-        });
-
-        console.log('GIF object aangemaakt');
 
         const canvas = document.createElement('canvas');
         canvas.width = 960;
         canvas.height = 540;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-        console.log('Canvas aangemaakt');
+        const background = await loadImage('background.jpg');
+        const wheel = await loadImage('wheel.png');
 
-        const background = new Image();
-        background.src = 'background.jpg';
-        const wheel = new Image();
-        wheel.src = 'wheel.png';
+        console.log('Alle afbeeldingen geladen, start frame generatie');
+        const frameCount = 60; // 2 seconds at 30 fps
+        const fps = 30;
 
-        console.log('Afbeeldingen worden geladen');
-
-        Promise.all([
-            new Promise(resolve => background.onload = resolve),
-            new Promise(resolve => wheel.onload = resolve)
-        ]).then(() => {
-            console.log('Alle afbeeldingen geladen, start frame generatie');
-            const frameCount = 60; // 2 seconds at 30 fps
-            let currentFrame = 0;
-
-            function addFrame() {
-                if (currentFrame < frameCount) {
-                    ctx.drawImage(background, 0, 0, 960, 540);
-                    
-                    const progress = currentFrame / frameCount;
-                    const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
-                    
-                    ctx.save();
-                    ctx.translate(480, 270);
-                    ctx.rotate(rotation * Math.PI / 180);
-                    ctx.drawImage(wheel, -75, -75, 150, 150);
-                    ctx.restore();
-                    
-                    gif.addFrame(ctx, {copy: true, delay: 33});
-                    
-                    currentFrame++;
-                    const frameProgress = Math.round((currentFrame / frameCount) * 50);
-                    progressBar.style.width = `${frameProgress}%`;
-                    downloadVideoButton.textContent = `Frames toevoegen: ${frameProgress}%`;
-                    
-                    requestAnimationFrame(addFrame);
-                } else {
-                    console.log('Alle frames toegevoegd, start rendering');
-                    gif.render();
-                }
-            }
-
-            addFrame();
+        for (let i = 0; i < frameCount; i++) {
+            ctx.drawImage(background, 0, 0, 960, 540);
             
-            gif.on('progress', function(p) {
-                const progress = Math.round(p * 50) + 50; // Start vanaf 50% (na frames toevoegen)
-                console.log('Rendering voortgang:', progress + '%');
-                progressBar.style.width = `${progress}%`;
-                downloadVideoButton.textContent = `Rendering: ${progress}%`;
-            });
+            const progress = i / frameCount;
+            const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
+            
+            ctx.save();
+            ctx.translate(480, 270);
+            ctx.rotate(rotation * Math.PI / 180);
+            ctx.drawImage(wheel, -75, -75, 150, 150);
+            ctx.restore();
+            
+            const frameData = canvas.toDataURL('image/png').split(',')[1];
+            ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+            
+            const frameProgress = Math.round((i / frameCount) * 50);
+            progressBar.style.width = `${frameProgress}%`;
+            downloadVideoButton.textContent = `Frames genereren: ${frameProgress}%`;
+        }
 
-            gif.on('finished', function(blob) {
-                console.log('GIF rendering voltooid');
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'wheel_spin.gif';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                downloadVideoButton.disabled = false;
-                downloadVideoButton.textContent = 'Download GIF';
-                progressBar.style.display = 'none';
-                console.log('GIF download gestart');
-            });
-        }).catch(error => {
-            console.error('Fout bij het laden van afbeeldingen:', error);
-            alert('Er is een fout opgetreden bij het laden van de afbeeldingen. Probeer het opnieuw.');
-            downloadVideoButton.disabled = false;
-            downloadVideoButton.textContent = 'Download GIF';
-            progressBar.style.display = 'none';
-        });
+        console.log('Alle frames gegenereerd, start video rendering');
+        await ffmpeg.run('-framerate', `${fps}`, '-i', 'frame_%05d.png', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', 'output.mp4');
+        
+        console.log('Video rendering voltooid');
+        const data = ffmpeg.FS('readFile', 'output.mp4');
+        const blob = new Blob([data.buffer], { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'wheel_spin.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Opruimen
+        for (let i = 0; i < frameCount; i++) {
+            ffmpeg.FS('unlink', `frame_${i.toString().padStart(5, '0')}.png`);
+        }
+        ffmpeg.FS('unlink', 'output.mp4');
+        
+        downloadVideoButton.disabled = false;
+        downloadVideoButton.textContent = 'Download MP4';
+        progressBar.style.display = 'none';
+        console.log('MP4 download gestart');
+    } else if (!ffmpeg.isLoaded()) {
+        alert('FFmpeg is nog niet geladen. Probeer het over enkele seconden opnieuw.');
     } else {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
     }
 });
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const numberDisplay = document.getElementById('number-display');
