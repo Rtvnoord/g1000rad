@@ -207,9 +207,24 @@ downloadVideoButton.addEventListener('click', async () => {
                         const scale = easeOutElastic(progress);
                         numberContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
                         
-                        const numberCanvas = await html2canvas(numberContainer);
-                        tempCtx.drawImage(canvas, 0, 0);
-                        tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
+                        let numberCanvas;
+                        try {
+                            numberCanvas = await html2canvas(numberContainer);
+                            if (!numberCanvas || numberCanvas.width === 0 || numberCanvas.height === 0) {
+                                throw new Error('html2canvas produceerde een ongeldig canvas');
+                            }
+                        } catch (error) {
+                            console.error('Fout bij het genereren van numberCanvas:', error);
+                            numberCanvas = null;
+                        }
+                
+                        if (numberCanvas && numberCanvas.width > 0 && numberCanvas.height > 0) {
+                            tempCtx.drawImage(canvas, 0, 0);
+                            tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
+                        } else {
+                            console.error('Ongeldige canvas grootte:', numberCanvas.width, numberCanvas.height);
+                            tempCtx.drawImage(canvas, 0, 0);
+                        }
                         
                         const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
                         ffmpeg.FS('writeFile', `frame_${(i + frame).toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
@@ -217,13 +232,16 @@ downloadVideoButton.addEventListener('click', async () => {
                     lastFrame = tempCanvas.toDataURL('image/png').split(',')[1];
                     i += animationFrames - 1; // Skip frames used for animation
                 } catch (error) {
-                    console.error('Error bij het genereren van het laatste frame:', error);
+                    console.error('Fout bij het genereren van het laatste frame:', error);
+                    // Gebruik het laatste succesvolle frame als fallback
+                    lastFrame = lastFrame || canvas.toDataURL('image/png').split(',')[1];
                 } finally {
                     document.body.removeChild(numberContainer);
                 }
             }
             
             if (i >= spinDuration && lastFrame) {
+                console.log('Gebruik laatst gegenereerde frame voor frame', i);
                 ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(lastFrame), c => c.charCodeAt(0)));
             } else {
                 const frameData = canvas.toDataURL('image/png').split(',')[1];
