@@ -91,23 +91,38 @@ downloadVideoButton.disabled = true;
 // Verwijder de bestaande DOMContentLoaded event listener
 
 let ffmpeg;
+let html2canvasLoaded = false;
 
 // Disable the download button initially
 downloadVideoButton.disabled = true;
 
 const { createFFmpeg, fetchFile } = FFmpeg;
 
-async function loadFFmpeg() {
+async function loadDependencies() {
+    // Load FFmpeg
     ffmpeg = createFFmpeg({ log: true });
     await ffmpeg.load();
     console.log('FFmpeg is geladen');
+
+    // Load html2canvas
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+        script.onload = () => {
+            console.log('html2canvas is geladen');
+            html2canvasLoaded = true;
+            resolve();
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 }
 
-document.addEventListener('DOMContentLoaded', loadFFmpeg);
+document.addEventListener('DOMContentLoaded', loadDependencies);
 
 downloadVideoButton.addEventListener('click', async () => {
     const targetNumber = parseInt(targetNumberInput.value);
-    if (targetNumber >= 0 && targetNumber <= 1000 && ffmpeg.isLoaded()) {
+    if (targetNumber >= 0 && targetNumber <= 1000 && ffmpeg.isLoaded() && html2canvasLoaded) {
         console.log('Start MP4 generatie voor nummer:', targetNumber);
         downloadVideoButton.disabled = true;
         downloadVideoButton.textContent = 'Video wordt gegenereerd...';
@@ -172,12 +187,16 @@ downloadVideoButton.addEventListener('click', async () => {
                 tempCtx.drawImage(canvas, 0, 0);
                 
                 document.body.appendChild(numberContainer);
-                html2canvas(numberContainer).then((numberCanvas) => {
+                try {
+                    const numberCanvas = await html2canvas(numberContainer);
                     tempCtx.drawImage(numberCanvas, (width - 100) / 2, (height - 100) / 2);
                     const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
                     ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+                } catch (error) {
+                    console.error('Error bij het genereren van het laatste frame:', error);
+                } finally {
                     document.body.removeChild(numberContainer);
-                });
+                }
             } else {
                 const frameData = canvas.toDataURL('image/png').split(',')[1];
                 ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
@@ -228,6 +247,8 @@ downloadVideoButton.addEventListener('click', async () => {
         console.log('MP4 download gestart');
     } else if (!ffmpeg.isLoaded()) {
         alert('FFmpeg is nog niet geladen. Probeer het over enkele seconden opnieuw.');
+    } else if (!html2canvasLoaded) {
+        alert('html2canvas is nog niet geladen. Probeer het over enkele seconden opnieuw.');
     } else {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
     }
