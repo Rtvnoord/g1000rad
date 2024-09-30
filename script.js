@@ -248,7 +248,7 @@ downloadVideoButton.addEventListener('click', async () => {
                 ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
             }
             
-            const frameProgress = Math.round((i / frameCount) * 100);
+            const frameProgress = Math.round((i / frameCount) * 90); // Max 90% voor frame generatie
             progressBar.style.width = `${frameProgress}%`;
             downloadVideoButton.textContent = `Video genereren: ${frameProgress}%`;
         }
@@ -282,6 +282,11 @@ downloadVideoButton.addEventListener('click', async () => {
         a.href = url;
         a.download = 'wheel_spin.mp4';
         document.body.appendChild(a);
+
+        // Update progress to 100% when ready to download
+        progressBar.style.width = '100%';
+        downloadVideoButton.textContent = 'Video genereren: 100%';
+
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
