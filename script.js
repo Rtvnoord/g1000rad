@@ -52,7 +52,7 @@ function animateNumberContainer(number) {
         opacity: 1,
         scale: 1,
         duration: 0.8,
-        ease: "elastic.out(1, 0.5)",
+        ease: "back.out(1.7)",
         onComplete: () => animateNumber()
     });
 }
@@ -61,7 +61,7 @@ function animateNumberContainer(number) {
 function animateNumber() {
     gsap.fromTo("#number-display", 
         { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)", delay: 0.2 }
+        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
     );
 }
 

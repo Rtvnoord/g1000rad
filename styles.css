@@ -52,7 +52,7 @@ body {
     z-index: 10;
     opacity: 0;
     transform: scale(0);
-    border-radius: 10px; /* Afgeronde hoeken voor een rechthoekig uiterlijk */
+    border-radius: 0; /* Verwijder afgeronde hoeken */
 }
 
 #number-display {
