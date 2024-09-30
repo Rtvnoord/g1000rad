@@ -11,7 +11,13 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.static(path.join(__dirname, '.')));
+app.use(express.static(path.join(__dirname, '.'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.wasm')) {
+            res.set('Content-Type', 'application/wasm');
+        }
+    }
+}));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

@@ -95,7 +95,7 @@ let ffmpeg;
 // Disable the download button initially
 downloadVideoButton.disabled = true;
 
-const { createFFmpeg, fetchFile } = FFmpeg;
+import { createFFmpeg, fetchFile } from './ffmpeg.min.js';
 
 async function loadFFmpeg() {
     ffmpeg = createFFmpeg({ log: true });
