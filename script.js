@@ -95,7 +95,7 @@ let ffmpeg;
 // Disable the download button initially
 downloadVideoButton.disabled = true;
 
-import { createFFmpeg, fetchFile } from './ffmpeg.min.js';
+const { createFFmpeg, fetchFile } = FFmpeg;
 
 async function loadFFmpeg() {
     ffmpeg = createFFmpeg({ log: true });
@@ -103,7 +103,7 @@ async function loadFFmpeg() {
     console.log('FFmpeg is geladen');
 }
 
-loadFFmpeg();
+document.addEventListener('DOMContentLoaded', loadFFmpeg);
 
 downloadVideoButton.addEventListener('click', async () => {
     const targetNumber = parseInt(targetNumberInput.value);
