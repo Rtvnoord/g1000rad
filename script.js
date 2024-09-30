@@ -173,21 +173,22 @@ downloadVideoButton.addEventListener('click', async () => {
             }
             
             if (i === spinDuration - 1 || (i >= spinDuration && !lastFrame)) {
-                // Toon het nummer op het laatste frame van de spin en houd het voor de rest van de video
+                // Toon het nummer met animatie
                 const numberContainer = document.createElement('div');
                 numberContainer.style.position = 'absolute';
                 numberContainer.style.left = '50%';
                 numberContainer.style.top = '50%';
                 numberContainer.style.transform = 'translate(-50%, -50%)';
-                numberContainer.style.width = '100px';
-                numberContainer.style.height = '100px';
+                numberContainer.style.width = '120px';
+                numberContainer.style.height = '120px';
                 numberContainer.style.backgroundColor = '#ee7204';
-                numberContainer.style.border = '2px solid white';
-                numberContainer.style.borderRadius = '50%';
+                numberContainer.style.border = '4px solid white';
+                numberContainer.style.borderRadius = '10px';
                 numberContainer.style.display = 'flex';
                 numberContainer.style.justifyContent = 'center';
                 numberContainer.style.alignItems = 'center';
-                numberContainer.style.fontSize = '48px';
+                numberContainer.style.fontSize = '60px';
+                numberContainer.style.fontWeight = 'bold';
                 numberContainer.style.color = 'white';
                 numberContainer.textContent = targetNumber;
                 
@@ -199,9 +200,22 @@ downloadVideoButton.addEventListener('click', async () => {
                 
                 document.body.appendChild(numberContainer);
                 try {
-                    const numberCanvas = await html2canvas(numberContainer);
-                    tempCtx.drawImage(numberCanvas, (width - 100) / 2, (height - 100) / 2);
+                    // Animatie van het nummer
+                    const animationFrames = 30; // 1 seconde animatie bij 30 fps
+                    for (let frame = 0; frame < animationFrames; frame++) {
+                        const progress = frame / (animationFrames - 1);
+                        const scale = easeOutElastic(progress);
+                        numberContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                        
+                        const numberCanvas = await html2canvas(numberContainer);
+                        tempCtx.drawImage(canvas, 0, 0);
+                        tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
+                        
+                        const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
+                        ffmpeg.FS('writeFile', `frame_${(i + frame).toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+                    }
                     lastFrame = tempCanvas.toDataURL('image/png').split(',')[1];
+                    i += animationFrames - 1; // Skip frames used for animation
                 } catch (error) {
                     console.error('Error bij het genereren van het laatste frame:', error);
                 } finally {
@@ -223,6 +237,11 @@ downloadVideoButton.addEventListener('click', async () => {
 
         function easeOutCubic(t) {
             return 1 - Math.pow(1 - t, 3);
+        }
+
+        function easeOutElastic(t) {
+            const p = 0.3;
+            return Math.pow(2, -10 * t) * Math.sin((t - p / 4) * (2 * Math.PI) / p) + 1;
         }
 
         console.log('Alle frames gegenereerd, start video rendering');
