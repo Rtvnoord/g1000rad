@@ -114,10 +114,10 @@ downloadVideoButton.addEventListener('click', async () => {
         progressBar.style.width = '0%';
         progressBar.style.display = 'block';
 
-        const frameCount = 300; // 10 seconds at 30 fps
+        const frameCount = 180; // 6 seconds at 30 fps
         const fps = 30;
-        const width = 1920;
-        const height = 1080;
+        const width = 960;
+        const height = 540;
 
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -129,11 +129,16 @@ downloadVideoButton.addEventListener('click', async () => {
 
         console.log('Alle afbeeldingen geladen, start frame generatie');
 
+        const extraSpins = Math.floor(Math.random() * 5 + 5) * 360; // 5 tot 10 extra rotaties
+        const targetDegrees = targetNumber * (360 / 1000);
+        const totalDegrees = targetDegrees + extraSpins;
+
         for (let i = 0; i < frameCount; i++) {
             ctx.drawImage(background, 0, 0, width, height);
             
             const progress = i / frameCount;
-            const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
+            const easeProgress = easeOutCubic(progress);
+            const rotation = easeProgress * totalDegrees;
             
             ctx.save();
             ctx.translate(width / 2, height / 2);
@@ -141,20 +146,50 @@ downloadVideoButton.addEventListener('click', async () => {
             ctx.drawImage(wheel, -150, -150, 300, 300);
             ctx.restore();
             
-            const frameData = canvas.toDataURL('image/png').split(',')[1];
-            ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+            if (i === frameCount - 1) {
+                // Toon het nummer op het laatste frame
+                const numberContainer = document.createElement('div');
+                numberContainer.style.position = 'absolute';
+                numberContainer.style.left = '50%';
+                numberContainer.style.top = '50%';
+                numberContainer.style.transform = 'translate(-50%, -50%)';
+                numberContainer.style.width = '100px';
+                numberContainer.style.height = '100px';
+                numberContainer.style.backgroundColor = '#ee7204';
+                numberContainer.style.border = '2px solid white';
+                numberContainer.style.borderRadius = '50%';
+                numberContainer.style.display = 'flex';
+                numberContainer.style.justifyContent = 'center';
+                numberContainer.style.alignItems = 'center';
+                numberContainer.style.fontSize = '48px';
+                numberContainer.style.color = 'white';
+                numberContainer.textContent = targetNumber;
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0);
+                
+                document.body.appendChild(numberContainer);
+                html2canvas(numberContainer).then((numberCanvas) => {
+                    tempCtx.drawImage(numberCanvas, (width - 100) / 2, (height - 100) / 2);
+                    const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
+                    ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+                    document.body.removeChild(numberContainer);
+                });
+            } else {
+                const frameData = canvas.toDataURL('image/png').split(',')[1];
+                ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+            }
             
             const frameProgress = Math.round((i / frameCount) * 100);
             progressBar.style.width = `${frameProgress}%`;
             downloadVideoButton.textContent = `Video genereren: ${frameProgress}%`;
-            
-            // Toon voortgang in beeld
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, height - 40, width, 40);
-            ctx.fillStyle = 'white';
-            ctx.font = '24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(`Genereren: ${frameProgress}%`, width / 2, height - 15);
+        }
+
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
         }
 
         console.log('Alle frames gegenereerd, start video rendering');
