@@ -115,39 +115,58 @@ downloadVideoButton.addEventListener('click', async () => {
         progressBar.style.display = 'block';
 
         const canvas = document.createElement('canvas');
-        canvas.width = 960;
-        canvas.height = 540;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         const background = await loadImage('background.jpg');
         const wheel = await loadImage('wheel.png');
 
         console.log('Alle afbeeldingen geladen, start frame generatie');
-        const frameCount = 60; // 2 seconds at 30 fps
+        const frameCount = 300; // 10 seconds at 30 fps
         const fps = 30;
+        const width = 1920;
+        const height = 1080;
 
         for (let i = 0; i < frameCount; i++) {
-            ctx.drawImage(background, 0, 0, 960, 540);
+            ctx.drawImage(background, 0, 0, width, height);
             
             const progress = i / frameCount;
             const rotation = progress * 360 * 5 + targetNumber * (360 / 1000);
             
             ctx.save();
-            ctx.translate(480, 270);
+            ctx.translate(width / 2, height / 2);
             ctx.rotate(rotation * Math.PI / 180);
-            ctx.drawImage(wheel, -75, -75, 150, 150);
+            ctx.drawImage(wheel, -150, -150, 300, 300);
             ctx.restore();
             
             const frameData = canvas.toDataURL('image/png').split(',')[1];
             ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
             
-            const frameProgress = Math.round((i / frameCount) * 50);
+            const frameProgress = Math.round((i / frameCount) * 100);
             progressBar.style.width = `${frameProgress}%`;
-            downloadVideoButton.textContent = `Frames genereren: ${frameProgress}%`;
+            downloadVideoButton.textContent = `Video genereren: ${frameProgress}%`;
+            
+            // Toon voortgang in beeld
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, height - 40, width, 40);
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Genereren: ${frameProgress}%`, width / 2, height - 15);
         }
 
         console.log('Alle frames gegenereerd, start video rendering');
-        await ffmpeg.run('-framerate', `${fps}`, '-i', 'frame_%05d.png', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', 'output.mp4');
+        await ffmpeg.run(
+            '-framerate', `${fps}`,
+            '-i', 'frame_%05d.png',
+            '-c:v', 'libx264',
+            '-preset', 'slow',
+            '-crf', '22',
+            '-vf', 'scale=1920:1080',
+            '-pix_fmt', 'yuv420p',
+            'output.mp4'
+        );
         
         console.log('Video rendering voltooid');
         const data = ffmpeg.FS('readFile', 'output.mp4');
