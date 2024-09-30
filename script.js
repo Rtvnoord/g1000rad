@@ -196,7 +196,6 @@ downloadVideoButton.addEventListener('click', async () => {
                 tempCanvas.width = width;
                 tempCanvas.height = height;
                 const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(canvas, 0, 0);
                 
                 document.body.appendChild(numberContainer);
                 try {
@@ -207,23 +206,13 @@ downloadVideoButton.addEventListener('click', async () => {
                         const scale = easeOutElastic(progress);
                         numberContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
                         
-                        let numberCanvas;
-                        try {
-                            numberCanvas = await html2canvas(numberContainer);
-                            if (!numberCanvas || numberCanvas.width === 0 || numberCanvas.height === 0) {
-                                throw new Error('html2canvas produceerde een ongeldig canvas');
-                            }
-                        } catch (error) {
-                            console.error('Fout bij het genereren van numberCanvas:', error);
-                            numberCanvas = null;
-                        }
-                
+                        tempCtx.drawImage(canvas, 0, 0);
+                        
+                        let numberCanvas = await html2canvas(numberContainer);
                         if (numberCanvas && numberCanvas.width > 0 && numberCanvas.height > 0) {
-                            tempCtx.drawImage(canvas, 0, 0);
                             tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
                         } else {
-                            console.error('Ongeldige canvas grootte:', numberCanvas.width, numberCanvas.height);
-                            tempCtx.drawImage(canvas, 0, 0);
+                            console.error('Ongeldige numberCanvas grootte:', numberCanvas ? `${numberCanvas.width}x${numberCanvas.height}` : 'null');
                         }
                         
                         const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
