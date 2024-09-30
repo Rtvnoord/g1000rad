@@ -42,22 +42,24 @@ body {
 
 #number-container {
     position: absolute;
-    width: 100px;
-    height: 100px;
-    background-color: #ee7204; /* Nieuwe oranje kleur */
-    border: 2px solid white; /* Witte rand */
+    width: 120px;
+    height: 120px;
+    background-color: #ee7204; /* Oranje kleur */
+    border: 4px solid white; /* Witte rand */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10;
     opacity: 0;
     transform: scale(0);
+    border-radius: 10px; /* Afgeronde hoeken voor een rechthoekig uiterlijk */
 }
 
 #number-display {
     font-family: 'Arial', sans-serif;
-    font-size: 48px;
+    font-size: 60px;
     color: white;
+    font-weight: bold;
 }
 
 .controls {

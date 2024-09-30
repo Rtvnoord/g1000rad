@@ -36,6 +36,7 @@ function spinWheel(targetNumber) {
 // Functie om het nummer-container te animeren
 function animateNumberContainer(number) {
     const numberContainer = document.getElementById('number-container');
+    const numberDisplay = document.getElementById('number-display');
     numberDisplay.textContent = number;
 
     gsap.set(numberContainer, {
@@ -50,17 +51,17 @@ function animateNumberContainer(number) {
     gsap.to(numberContainer, {
         opacity: 1,
         scale: 1,
-        duration: 0.5,
-        ease: "back.out(1.7)",
+        duration: 0.8,
+        ease: "elastic.out(1, 0.5)",
         onComplete: () => animateNumber()
     });
 }
 
 // Functie om het nummer te animeren
 function animateNumber() {
-    gsap.fromTo(numberDisplay, 
+    gsap.fromTo("#number-display", 
         { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }
+        { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)", delay: 0.2 }
     );
 }
 
