@@ -29,20 +29,15 @@ function spinWheel(targetNumber) {
     setTimeout(() => {
         wheel.style.transition = 'none';
         wheel.style.transform = `translate(-50%, -50%) rotate(${degrees}deg)`;
-        animateNumberContainer(targetNumber);
+        showNumber(targetNumber);
     }, 4000);
 }
 
-// Functie om het nummer-container te animeren
-function animateNumberContainer(number) {
+// Functie om het nummer te tonen
+function showNumber(number) {
     const numberContainer = document.getElementById('number-container');
     const numberDisplay = document.getElementById('number-display');
     numberDisplay.textContent = number;
-
-    gsap.set(numberContainer, {
-        opacity: 0,
-        scale: 0
-    });
 
     gsap.to(numberContainer, {
         opacity: 1,
@@ -178,12 +173,12 @@ async function generateAndDownloadVideo(targetNumber) {
         }
         
         if (i === spinDuration - 1 || (i >= spinDuration && !lastFrame)) {
-            // Toon het nummer met animatie
+            // Toon het nummer
             const numberContainer = document.createElement('div');
             numberContainer.style.position = 'absolute';
             numberContainer.style.left = '50%';
-            numberContainer.style.top = '45%'; // Verplaatst van 50% naar 45%
-            numberContainer.style.transform = 'translate(-50%, -50%) scale(0)'; // Begin met schaal 0
+            numberContainer.style.top = '45%';
+            numberContainer.style.transform = 'translate(-50%, -50%)';
             numberContainer.style.width = '120px';
             numberContainer.style.height = '120px';
             numberContainer.style.backgroundColor = '#ee7204';
@@ -195,7 +190,6 @@ async function generateAndDownloadVideo(targetNumber) {
             numberContainer.style.fontSize = '60px';
             numberContainer.style.fontWeight = 'bold';
             numberContainer.style.color = 'white';
-            numberContainer.style.opacity = '0'; // Begin met onzichtbaar
             numberContainer.textContent = targetNumber;
             
             const tempCanvas = document.createElement('canvas');
@@ -205,29 +199,16 @@ async function generateAndDownloadVideo(targetNumber) {
             
             document.body.appendChild(numberContainer);
             try {
-                // Animatie van het nummer
-                const animationFrames = 30; // 1 seconde animatie bij 30 fps
-                for (let frame = 0; frame < animationFrames; frame++) {
-                    const progress = frame / (animationFrames - 1);
-                    const scale = easeOutElastic(progress);
-                    const opacity = progress;
-                    numberContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
-                    numberContainer.style.opacity = opacity;
-                    
-                    tempCtx.drawImage(canvas, 0, 0);
-                    
-                    let numberCanvas = await html2canvas(numberContainer);
-                    if (numberCanvas && numberCanvas.width > 0 && numberCanvas.height > 0) {
-                        tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
-                    } else {
-                        console.error('Ongeldige numberCanvas grootte:', numberCanvas ? `${numberCanvas.width}x${numberCanvas.height}` : 'null');
-                    }
-                    
-                    const frameData = tempCanvas.toDataURL('image/png').split(',')[1];
-                    ffmpeg.FS('writeFile', `frame_${(i + frame).toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+                tempCtx.drawImage(canvas, 0, 0);
+                
+                let numberCanvas = await html2canvas(numberContainer);
+                if (numberCanvas && numberCanvas.width > 0 && numberCanvas.height > 0) {
+                    tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
+                } else {
+                    console.error('Ongeldige numberCanvas grootte:', numberCanvas ? `${numberCanvas.width}x${numberCanvas.height}` : 'null');
                 }
+                
                 lastFrame = tempCanvas.toDataURL('image/png').split(',')[1];
-                i += animationFrames - 1; // Skip frames used for animation
             } catch (error) {
                 console.error('Fout bij het genereren van het laatste frame:', error);
                 // Gebruik het laatste succesvolle frame als fallback
