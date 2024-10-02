@@ -139,8 +139,8 @@ async function generateAndDownloadVideo(targetNumber) {
     const frameCount = 480; // 16 seconds at 30 fps (6 seconds spinning + 10 seconds static)
     const fps = 30;
     const spinDuration = 180; // 6 seconds of spinning
-    const width = 960;
-    const height = 540;
+    const width = 1920;
+    const height = 1080;
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -168,7 +168,7 @@ async function generateAndDownloadVideo(targetNumber) {
             ctx.save();
             ctx.translate(width / 2, height / 2);
             ctx.rotate(rotation * Math.PI / 180);
-            ctx.drawImage(wheel, -150, -150, 300, 300);
+            ctx.drawImage(wheel, -200, -200, 400, 400);
             ctx.restore();
         }
         
@@ -177,17 +177,17 @@ async function generateAndDownloadVideo(targetNumber) {
             const numberContainer = document.createElement('div');
             numberContainer.style.position = 'absolute';
             numberContainer.style.left = '50%';
-            numberContainer.style.top = '45%';
+            numberContainer.style.top = '40%';
             numberContainer.style.transform = 'translate(-50%, -50%)';
-            numberContainer.style.width = '120px';
-            numberContainer.style.height = '120px';
+            numberContainer.style.width = '240px';
+            numberContainer.style.height = '240px';
             numberContainer.style.backgroundColor = '#ee7204';
             numberContainer.style.border = '4px solid white';
             numberContainer.style.borderRadius = '0';
             numberContainer.style.display = 'flex';
             numberContainer.style.justifyContent = 'center';
             numberContainer.style.alignItems = 'center';
-            numberContainer.style.fontSize = '60px';
+            numberContainer.style.fontSize = '120px';
             numberContainer.style.fontWeight = 'bold';
             numberContainer.style.color = 'white';
             numberContainer.textContent = targetNumber;
@@ -203,7 +203,7 @@ async function generateAndDownloadVideo(targetNumber) {
                 
                 let numberCanvas = await html2canvas(numberContainer);
                 if (numberCanvas && numberCanvas.width > 0 && numberCanvas.height > 0) {
-                    tempCtx.drawImage(numberCanvas, (width - 120) / 2, (height - 120) / 2);
+                    tempCtx.drawImage(numberCanvas, (width - 240) / 2, (height - 240) * 0.4);
                 } else {
                     console.error('Ongeldige numberCanvas grootte:', numberCanvas ? `${numberCanvas.width}x${numberCanvas.height}` : 'null');
                 }
@@ -238,7 +238,7 @@ async function generateAndDownloadVideo(targetNumber) {
         '-c:v', 'libx264',
         '-preset', 'slow',
         '-crf', '22',
-        '-vf', 'scale=1920:1080',
+        '-vf', 'scale=1920:1080,setsar=1:1',
         '-pix_fmt', 'yuv420p',
         'output.mp4'
     );
