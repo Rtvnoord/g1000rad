@@ -4,19 +4,18 @@ const generateRandomButton = document.getElementById('generateRandom');
 const spinWheelButton = document.getElementById('spinWheel');
 const downloadVideoButton = document.getElementById('downloadVideo');
 const progressBar = document.getElementById('progressBar');
-const numberDisplay = document.getElementById('number-display');
 
 // Gemeenschappelijke render functie
 function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = false, numberScale = 1) {
-    const wheelSize = 350;
-    const numberSize = 180;
+    const wheelSize = 800; // Vergroot het rad
+    const numberSize = 300; // Vergroot het nummer
 
     // Teken de achtergrond
     ctx.drawImage(background, 0, 0, width, height);
 
     // Teken het rad
     ctx.save();
-    ctx.translate(width / 2, height * 0.45);
+    ctx.translate(width / 2, height / 2);
     ctx.rotate(rotation * Math.PI / 180);
     ctx.drawImage(wheelImage, -wheelSize/2, -wheelSize/2, wheelSize, wheelSize);
     ctx.restore();
@@ -26,92 +25,23 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
         const numberBoxSize = numberSize * numberScale;
         
         ctx.fillStyle = '#ee7204';
-        ctx.fillRect((width - numberBoxSize) / 2, (height - numberBoxSize) * 0.45, numberBoxSize, numberBoxSize);
+        ctx.fillRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2, numberBoxSize, numberBoxSize);
         
         ctx.strokeStyle = 'white';
-        ctx.lineWidth = 3 * numberScale;
-        ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) * 0.45, numberBoxSize, numberBoxSize);
+        ctx.lineWidth = 5 * numberScale;
+        ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2, numberBoxSize, numberBoxSize);
         
         ctx.fillStyle = 'white';
-        ctx.font = `bold ${90 * numberScale}px Arial`;
+        ctx.font = `bold ${150 * numberScale}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(targetNumber, width / 2, height * 0.45);
+        ctx.fillText(targetNumber, width / 2, height / 2);
     }
-}
-
-// Functie om het rad te draaien
-function spinWheel(targetNumber) {
-    // Verberg het nummer-container voordat het rad begint te draaien
-    gsap.set("#number-container", { opacity: 0, scale: 0 });
-
-    // Bereken het aantal graden dat het rad moet draaien
-    const degreesPerNumber = 360 / 1000;
-    const degrees = targetNumber * degreesPerNumber;
-    
-    // Voeg wat willekeurigheid toe aan de rotatie
-    const extraSpins = Math.floor(Math.random() * 5 + 5) * 360; // 5 tot 10 extra rotaties
-    const totalDegrees = degrees + extraSpins;
-
-    // Animeer het rad
-    const duration = 4; // 4 seconden
-    const fps = 60;
-    const totalFrames = duration * fps;
-
-    let frame = 0;
-    const animate = () => {
-        if (frame <= totalFrames) {
-            const progress = frame / totalFrames;
-            const currentRotation = easeOutCubic(progress) * totalDegrees;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 960;
-            canvas.height = 540;
-            const ctx = canvas.getContext('2d');
-
-            renderWheel(ctx, canvas.width, canvas.height, currentRotation, targetNumber);
-
-            // Update het wheel-container element
-            document.getElementById('wheel-container').innerHTML = '';
-            document.getElementById('wheel-container').appendChild(canvas);
-
-            frame++;
-            requestAnimationFrame(animate);
-        } else {
-            // Toon het nummer na de animatie
-            showNumber(targetNumber);
-        }
-    };
-
-    animate();
-}
-
-// Functie om het nummer te tonen
-function showNumber(number) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 960;
-    canvas.height = 540;
-    const ctx = canvas.getContext('2d');
-
-    const degreesPerNumber = 360 / 1000;
-    const degrees = number * degreesPerNumber;
-
-    renderWheel(ctx, canvas.width, canvas.height, degrees, number, true);
-
-    // Update het wheel-container element
-    document.getElementById('wheel-container').innerHTML = '';
-    document.getElementById('wheel-container').appendChild(canvas);
-
-    gsap.from(canvas, {
-        opacity: 0,
-        scale: 0.5,
-        duration: 0.8,
-        ease: "back.out(1.7)"
-    });
 }
 
 function updateProgress(progress) {
     progressBar.style.width = `${progress}%`;
+    progressBar.textContent = `${progress}%`;
     downloadVideoButton.textContent = `Video genereren: ${progress}%`;
     if (progress === 100) {
         downloadVideoButton.textContent = 'Download MP4';
@@ -132,7 +62,6 @@ generateRandomButton.addEventListener('click', () => {
 spinWheelButton.addEventListener('click', () => {
     const targetNumber = parseInt(targetNumberInput.value);
     if (targetNumber >= 0 && targetNumber <= 1000) {
-        spinWheel(targetNumber);
         downloadVideoButton.disabled = false; // Enable the download button after spinning
     } else {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
@@ -141,8 +70,6 @@ spinWheelButton.addEventListener('click', () => {
 
 // Disable the download button initially
 downloadVideoButton.disabled = true;
-
-// Verwijder de bestaande DOMContentLoaded event listener
 
 let ffmpeg;
 let html2canvasLoaded = false;
@@ -156,9 +83,6 @@ window.addEventListener('load', async () => {
         loadImage('wheel.png')
     ]);
 });
-
-// Disable the download button initially
-downloadVideoButton.disabled = true;
 
 const { createFFmpeg, fetchFile } = FFmpeg;
 
@@ -277,7 +201,6 @@ async function generateAndDownloadVideo(targetNumber) {
     ffmpeg.FS('unlink', 'output.mp4');
     
     downloadVideoButton.disabled = false;
-    progressBar.style.display = 'none';
     console.log('Video generatie voltooid');
 
     // Download de gegenereerde video
@@ -298,11 +221,6 @@ function downloadVideo(blob) {
 
 function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
-}
-
-function easeOutElastic(t) {
-    const p = 0.3;
-    return Math.pow(2, -10 * t) * Math.sin((t - p / 4) * (2 * Math.PI) / p) + 1;
 }
 
 function easeOutElastic(t) {
