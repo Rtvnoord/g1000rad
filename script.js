@@ -1,5 +1,4 @@
 // Elementen ophalen
-const wheel = document.getElementById('wheel');
 const targetNumberInput = document.getElementById('targetNumber');
 const generateRandomButton = document.getElementById('generateRandom');
 const spinWheelButton = document.getElementById('spinWheel');
@@ -19,7 +18,7 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
     ctx.save();
     ctx.translate(width / 2, height * 0.45);
     ctx.rotate(rotation * Math.PI / 180);
-    ctx.drawImage(wheel, -wheelSize/2, -wheelSize/2, wheelSize, wheelSize);
+    ctx.drawImage(wheelImage, -wheelSize/2, -wheelSize/2, wheelSize, wheelSize);
     ctx.restore();
 
     // Teken het nummer als showNumber true is
@@ -148,11 +147,11 @@ downloadVideoButton.disabled = true;
 let ffmpeg;
 let html2canvasLoaded = false;
 let generatedVideoBlob = null;
-let background, wheel;
+let background, wheelImage;
 
 // Laad de afbeeldingen bij het starten van de applicatie
 window.addEventListener('load', async () => {
-    [background, wheel] = await Promise.all([
+    [background, wheelImage] = await Promise.all([
         loadImage('background.jpg'),
         loadImage('wheel.png')
     ]);
