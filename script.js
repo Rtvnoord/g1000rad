@@ -47,6 +47,14 @@ function showNumber(number) {
     });
 }
 
+function updateProgress(progress) {
+    progressBar.style.width = `${progress}%`;
+    downloadVideoButton.textContent = `Video genereren: ${progress}%`;
+    if (progress === 100) {
+        downloadVideoButton.textContent = 'Download MP4';
+    }
+}
+
 // Functie om een willekeurig nummer te genereren
 function generateRandomNumber() {
     return Math.floor(Math.random() * 1001);
@@ -139,8 +147,8 @@ async function generateAndDownloadVideo(targetNumber) {
     const frameCount = 480; // 16 seconds at 30 fps (6 seconds spinning + 10 seconds static)
     const fps = 30;
     const spinDuration = 180; // 6 seconds of spinning
-    const width = 1920;
-    const height = 1080;
+    const width = 960;
+    const height = 540;
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -168,7 +176,7 @@ async function generateAndDownloadVideo(targetNumber) {
             ctx.save();
             ctx.translate(width / 2, height / 2);
             ctx.rotate(rotation * Math.PI / 180);
-            ctx.drawImage(wheel, -200, -200, 400, 400);
+            ctx.drawImage(wheel, -175, -175, 350, 350);
             ctx.restore();
         }
         
@@ -226,9 +234,8 @@ async function generateAndDownloadVideo(targetNumber) {
             ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
         }
         
-        const frameProgress = Math.round((i / frameCount) * 90); // Max 90% voor frame generatie
-        progressBar.style.width = `${frameProgress}%`;
-        downloadVideoButton.textContent = `Video genereren: ${frameProgress}%`;
+        const frameProgress = Math.round((i / frameCount) * 80); // Max 80% voor frame generatie
+        updateProgress(frameProgress);
     }
 
     console.log('Alle frames gegenereerd, start video rendering');
@@ -238,18 +245,18 @@ async function generateAndDownloadVideo(targetNumber) {
         '-c:v', 'libx264',
         '-preset', 'slow',
         '-crf', '22',
-        '-vf', 'scale=1920:1080,setsar=1:1',
+        '-vf', 'scale=960:540,setsar=1:1',
         '-pix_fmt', 'yuv420p',
         'output.mp4'
     );
+    updateProgress(95); // Update progress after video rendering
     
     console.log('Video rendering voltooid');
     const data = ffmpeg.FS('readFile', 'output.mp4');
     generatedVideoBlob = new Blob([data.buffer], { type: 'video/mp4' });
 
     // Update progress to 100% when ready to download
-    progressBar.style.width = '100%';
-    downloadVideoButton.textContent = 'Download MP4';
+    updateProgress(100);
 
     // Opruimen
     for (let i = 0; i < frameCount; i++) {
