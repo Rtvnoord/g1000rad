@@ -216,9 +216,9 @@ async function generateAndDownloadVideo(targetNumber) {
     progressBar.style.width = '0%';
     progressBar.style.display = 'block';
 
-    const frameCount = 480; // 16 seconds at 30 fps (6 seconds spinning + 10 seconds static)
-    const fps = 30;
-    const spinDuration = 180; // 6 seconds of spinning
+    const frameCount = 400; // 16 seconds at 25 fps (6 seconds spinning + 10 seconds static)
+    const fps = 25;
+    const spinDuration = 150; // 6 seconds of spinning
     const width = 960;
     const height = 540;
 
@@ -239,7 +239,7 @@ async function generateAndDownloadVideo(targetNumber) {
         const rotation = easeProgress * totalDegrees;
         
         const showNumber = i >= spinDuration;
-        const numberScale = showNumber ? Math.min((i - spinDuration) / 30, 1) : 0; // 1 seconde animatie
+        const numberScale = showNumber ? easeOutElastic(Math.min((i - spinDuration) / 25, 1)) : 0; // Snellere animatie met easing
 
         renderWheel(ctx, width, height, rotation, targetNumber, showNumber, numberScale);
 
@@ -298,6 +298,11 @@ function downloadVideo(blob) {
 
 function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
+}
+
+function easeOutElastic(t) {
+    const p = 0.3;
+    return Math.pow(2, -10 * t) * Math.sin((t - p / 4) * (2 * Math.PI) / p) + 1;
 }
 
 function easeOutElastic(t) {
