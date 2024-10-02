@@ -182,8 +182,8 @@ async function generateAndDownloadVideo(targetNumber) {
             const numberContainer = document.createElement('div');
             numberContainer.style.position = 'absolute';
             numberContainer.style.left = '50%';
-            numberContainer.style.top = '50%';
-            numberContainer.style.transform = 'translate(-50%, -50%)';
+            numberContainer.style.top = '45%'; // Verplaatst van 50% naar 45%
+            numberContainer.style.transform = 'translate(-50%, -50%) scale(0)'; // Begin met schaal 0
             numberContainer.style.width = '120px';
             numberContainer.style.height = '120px';
             numberContainer.style.backgroundColor = '#ee7204';
@@ -195,6 +195,7 @@ async function generateAndDownloadVideo(targetNumber) {
             numberContainer.style.fontSize = '60px';
             numberContainer.style.fontWeight = 'bold';
             numberContainer.style.color = 'white';
+            numberContainer.style.opacity = '0'; // Begin met onzichtbaar
             numberContainer.textContent = targetNumber;
             
             const tempCanvas = document.createElement('canvas');
@@ -209,7 +210,9 @@ async function generateAndDownloadVideo(targetNumber) {
                 for (let frame = 0; frame < animationFrames; frame++) {
                     const progress = frame / (animationFrames - 1);
                     const scale = easeOutElastic(progress);
+                    const opacity = progress;
                     numberContainer.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                    numberContainer.style.opacity = opacity;
                     
                     tempCtx.drawImage(canvas, 0, 0);
                     

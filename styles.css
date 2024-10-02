@@ -32,11 +32,11 @@ body {
 
 #wheel {
     position: absolute;
-    top: 50%;
+    top: 45%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px; /* Pas dit aan naar de gewenste grootte van je rad */
-    height: 300px;
+    width: 350px; /* Vergroot van 300px naar 350px */
+    height: 350px; /* Vergroot van 300px naar 350px */
     transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -54,7 +54,7 @@ body {
     transform: translate(-50%, -50%) scale(0);
     border-radius: 0; /* Verwijder afgeronde hoeken */
     left: 50%;
-    top: 50%;
+    top: 45%; /* Verplaatst van 50% naar 45% om het iets hoger te plaatsen */
 }
 
 #number-display {
