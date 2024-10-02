@@ -42,9 +42,13 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
 function updateProgress(progress) {
     progressBar.style.width = `${progress}%`;
     progressBar.textContent = `${progress}%`;
-    downloadVideoButton.textContent = `Video genereren: ${progress}%`;
-    if (progress === 100) {
-        downloadVideoButton.textContent = 'Download MP4';
+    if (progress < 80) {
+        const frame = Math.floor((progress / 80) * 400);
+        spinWheelButton.textContent = `Genereren: Frame ${frame}/400`;
+    } else if (progress < 95) {
+        spinWheelButton.textContent = 'Video renderen...';
+    } else if (progress === 100) {
+        spinWheelButton.textContent = 'Genereer video';
     }
 }
 
@@ -59,17 +63,17 @@ generateRandomButton.addEventListener('click', () => {
     targetNumberInput.value = randomNumber;
 });
 
-spinWheelButton.addEventListener('click', () => {
+spinWheelButton.addEventListener('click', async () => {
     const targetNumber = parseInt(targetNumberInput.value);
     if (targetNumber >= 0 && targetNumber <= 1000) {
-        downloadVideoButton.disabled = false; // Enable the download button after spinning
+        await generateVideo(targetNumber);
     } else {
         alert('Voer een geldig nummer in tussen 0 en 1000.');
     }
 });
 
-// Disable the download button initially
-downloadVideoButton.disabled = true;
+// Enable the download button initially
+downloadVideoButton.disabled = false;
 
 let ffmpeg;
 let html2canvasLoaded = false;
@@ -114,29 +118,19 @@ async function loadDependencies() {
 
 document.addEventListener('DOMContentLoaded', loadDependencies);
 
-downloadVideoButton.addEventListener('click', async () => {
-    const targetNumber = parseInt(targetNumberInput.value);
-    if (targetNumber >= 0 && targetNumber <= 1000 && ffmpeg.isLoaded() && html2canvasLoaded) {
-        if (generatedVideoBlob) {
-            // Als er al een gegenereerde video is, download deze direct
-            downloadVideo(generatedVideoBlob);
-        } else {
-            // Anders, genereer een nieuwe video
-            await generateAndDownloadVideo(targetNumber);
-        }
-    } else if (!ffmpeg.isLoaded()) {
-        alert('FFmpeg is nog niet geladen. Probeer het over enkele seconden opnieuw.');
-    } else if (!html2canvasLoaded) {
-        alert('html2canvas is nog niet geladen. Probeer het over enkele seconden opnieuw.');
+downloadVideoButton.addEventListener('click', () => {
+    if (generatedVideoBlob) {
+        downloadVideo(generatedVideoBlob);
     } else {
-        alert('Voer een geldig nummer in tussen 0 en 1000.');
+        alert('Genereer eerst een video voordat je deze probeert te downloaden.');
     }
 });
 
-async function generateAndDownloadVideo(targetNumber) {
+async function generateVideo(targetNumber) {
     console.log('Start MP4 generatie voor nummer:', targetNumber);
+    spinWheelButton.disabled = true;
     downloadVideoButton.disabled = true;
-    downloadVideoButton.textContent = 'Video wordt gegenereerd...';
+    spinWheelButton.textContent = 'Video wordt gegenereerd...';
     progressBar.style.width = '0%';
     progressBar.style.display = 'block';
 
@@ -172,6 +166,9 @@ async function generateAndDownloadVideo(targetNumber) {
         
         const frameProgress = Math.round((i / frameCount) * 80); // Max 80% voor frame generatie
         updateProgress(frameProgress);
+
+        // Voeg een kleine pauze toe om de UI te laten updaten
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 
     console.log('Alle frames gegenereerd, start video rendering');
@@ -200,11 +197,23 @@ async function generateAndDownloadVideo(targetNumber) {
     }
     ffmpeg.FS('unlink', 'output.mp4');
     
+    spinWheelButton.disabled = false;
+    spinWheelButton.textContent = 'Genereer video';
     downloadVideoButton.disabled = false;
+    downloadVideoButton.textContent = 'Download video';
     console.log('Video generatie voltooid');
+}
 
-    // Download de gegenereerde video
-    downloadVideo(generatedVideoBlob);
+function downloadVideo(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wheel_spin.mp4';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log('MP4 download gestart');
 }
 
 function downloadVideo(blob) {
