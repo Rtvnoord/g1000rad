@@ -9,13 +9,14 @@ const progressBar = document.getElementById('progressBar');
 function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = false, numberScale = 1) {
     const wheelSize = 800; // Vergroot het rad
     const numberSize = 300; // Vergroot het nummer
+    const wheelOffsetY = -50; // Verplaats het rad 50 pixels omhoog
 
     // Teken de achtergrond
     ctx.drawImage(background, 0, 0, width, height);
 
     // Teken het rad
     ctx.save();
-    ctx.translate(width / 2, height / 2);
+    ctx.translate(width / 2, height / 2 + wheelOffsetY);
     ctx.rotate(rotation * Math.PI / 180);
     ctx.drawImage(wheelImage, -wheelSize/2, -wheelSize/2, wheelSize, wheelSize);
     ctx.restore();
@@ -39,15 +40,15 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
     }
 }
 
-function updateProgress(progress) {
+function updateProgress(progress, stage) {
     progressBar.style.width = `${progress}%`;
     progressBar.textContent = `${progress}%`;
-    if (progress < 80) {
+    if (stage === 'frames') {
         const frame = Math.floor((progress / 80) * 400);
         spinWheelButton.textContent = `Genereren: Frame ${frame}/400`;
-    } else if (progress < 95) {
-        spinWheelButton.textContent = 'Video renderen...';
-    } else if (progress === 100) {
+    } else if (stage === 'encoding') {
+        spinWheelButton.textContent = `Video renderen: ${progress}%`;
+    } else if (stage === 'complete') {
         spinWheelButton.textContent = 'Genereer video';
     }
 }
@@ -165,13 +166,19 @@ async function generateVideo(targetNumber) {
         ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
         
         const frameProgress = Math.round((i / frameCount) * 80); // Max 80% voor frame generatie
-        updateProgress(frameProgress);
+        updateProgress(frameProgress, 'frames');
 
         // Voeg een kleine pauze toe om de UI te laten updaten
         await new Promise(resolve => setTimeout(resolve, 0));
     }
 
     console.log('Alle frames gegenereerd, start video rendering');
+    
+    ffmpeg.setProgress(({ ratio }) => {
+        const encodingProgress = Math.round(80 + ratio * 20); // 80% tot 100%
+        updateProgress(encodingProgress, 'encoding');
+    });
+
     await ffmpeg.run(
         '-framerate', `${fps}`,
         '-i', 'frame_%05d.png',
@@ -182,14 +189,13 @@ async function generateVideo(targetNumber) {
         '-pix_fmt', 'yuv420p',
         'output.mp4'
     );
-    updateProgress(95); // Update progress after video rendering
     
     console.log('Video rendering voltooid');
     const data = ffmpeg.FS('readFile', 'output.mp4');
     generatedVideoBlob = new Blob([data.buffer], { type: 'video/mp4' });
 
     // Update progress to 100% when ready to download
-    updateProgress(100);
+    updateProgress(100, 'complete');
 
     // Opruimen
     for (let i = 0; i < frameCount; i++) {
