@@ -152,8 +152,10 @@ let background, wheel;
 
 // Laad de afbeeldingen bij het starten van de applicatie
 window.addEventListener('load', async () => {
-    background = await loadImage('background.jpg');
-    wheel = await loadImage('wheel.png');
+    [background, wheel] = await Promise.all([
+        loadImage('background.jpg'),
+        loadImage('wheel.png')
+    ]);
 });
 
 // Disable the download button initially
