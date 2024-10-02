@@ -148,8 +148,7 @@ downloadVideoButton.disabled = true;
 let ffmpeg;
 let html2canvasLoaded = false;
 let generatedVideoBlob = null;
-let background;
-let wheel;
+let background, wheel;
 
 // Laad de afbeeldingen bij het starten van de applicatie
 window.addEventListener('load', async () => {
