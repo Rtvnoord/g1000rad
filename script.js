@@ -166,73 +166,39 @@ async function generateAndDownloadVideo(targetNumber) {
 
     let lastFrame;
     for (let i = 0; i < frameCount; i++) {
-        if (i < spinDuration) {
-            ctx.drawImage(background, 0, 0, width, height);
-            
-            const progress = i / spinDuration;
-            const easeProgress = easeOutCubic(progress);
-            const rotation = easeProgress * totalDegrees;
-            
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.rotate(rotation * Math.PI / 180);
-            ctx.drawImage(wheel, -175, -175, 350, 350);
-            ctx.restore();
-        }
+        ctx.drawImage(background, 0, 0, width, height);
         
-        if (i === spinDuration - 1 || (i >= spinDuration && !lastFrame)) {
-            // Toon het nummer
-            const numberContainer = document.createElement('div');
-            numberContainer.style.position = 'absolute';
-            numberContainer.style.left = '50%';
-            numberContainer.style.top = '40%';
-            numberContainer.style.transform = 'translate(-50%, -50%)';
-            numberContainer.style.width = '240px';
-            numberContainer.style.height = '240px';
-            numberContainer.style.backgroundColor = '#ee7204';
-            numberContainer.style.border = '4px solid white';
-            numberContainer.style.borderRadius = '0';
-            numberContainer.style.display = 'flex';
-            numberContainer.style.justifyContent = 'center';
-            numberContainer.style.alignItems = 'center';
-            numberContainer.style.fontSize = '120px';
-            numberContainer.style.fontWeight = 'bold';
-            numberContainer.style.color = 'white';
-            numberContainer.textContent = targetNumber;
-            
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = width;
-            tempCanvas.height = height;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            document.body.appendChild(numberContainer);
-            try {
-                tempCtx.drawImage(canvas, 0, 0);
-                
-                let numberCanvas = await html2canvas(numberContainer);
-                if (numberCanvas && numberCanvas.width > 0 && numberCanvas.height > 0) {
-                    tempCtx.drawImage(numberCanvas, (width - 240) / 2, (height - 240) * 0.4);
-                } else {
-                    console.error('Ongeldige numberCanvas grootte:', numberCanvas ? `${numberCanvas.width}x${numberCanvas.height}` : 'null');
-                }
-                
-                lastFrame = tempCanvas.toDataURL('image/png').split(',')[1];
-            } catch (error) {
-                console.error('Fout bij het genereren van het laatste frame:', error);
-                // Gebruik het laatste succesvolle frame als fallback
-                lastFrame = lastFrame || canvas.toDataURL('image/png').split(',')[1];
-            } finally {
-                document.body.removeChild(numberContainer);
-            }
-        }
+        const progress = Math.min(i / spinDuration, 1);
+        const easeProgress = easeOutCubic(progress);
+        const rotation = easeProgress * totalDegrees;
         
-        if (i >= spinDuration && lastFrame) {
-            console.log('Gebruik laatst gegenereerde frame voor frame', i);
-            ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(lastFrame), c => c.charCodeAt(0)));
-        } else {
-            const frameData = canvas.toDataURL('image/png').split(',')[1];
-            ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
+        ctx.save();
+        ctx.translate(width / 2, height * 0.4); // Verplaats het rad hoger
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.drawImage(wheel, -250, -250, 500, 500); // Vergroot naar 500x500
+        ctx.restore();
+
+        if (i >= spinDuration) {
+            // Toon en animeer het nummer
+            const numberScale = Math.min((i - spinDuration) / 30, 1); // 1 seconde animatie
+            const numberSize = 240 * numberScale;
+            
+            ctx.fillStyle = '#ee7204';
+            ctx.fillRect((width - numberSize) / 2, (height - numberSize) * 0.4, numberSize, numberSize);
+            
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 4 * numberScale;
+            ctx.strokeRect((width - numberSize) / 2, (height - numberSize) * 0.4, numberSize, numberSize);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${120 * numberScale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(targetNumber, width / 2, height * 0.4);
         }
+
+        const frameData = canvas.toDataURL('image/png').split(',')[1];
+        ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
         
         const frameProgress = Math.round((i / frameCount) * 80); // Max 80% voor frame generatie
         updateProgress(frameProgress);
