@@ -89,8 +89,8 @@ function spinWheel(targetNumber) {
 // Functie om het nummer te tonen
 function showNumber(number) {
     const canvas = document.createElement('canvas');
-    canvas.width = 960;
-    canvas.height = 540;
+    canvas.width = 1920;
+    canvas.height = 1080;
     const ctx = canvas.getContext('2d');
 
     const degreesPerNumber = 360 / 1000;
@@ -219,8 +219,8 @@ async function generateAndDownloadVideo(targetNumber) {
     const frameCount = 400; // 16 seconds at 25 fps (6 seconds spinning + 10 seconds static)
     const fps = 25;
     const spinDuration = 150; // 6 seconds of spinning
-    const width = 960;
-    const height = 540;
+    const width = 1920;
+    const height = 1080;
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -257,7 +257,7 @@ async function generateAndDownloadVideo(targetNumber) {
         '-c:v', 'libx264',
         '-preset', 'slow',
         '-crf', '22',
-        '-vf', 'scale=960:540,setsar=1:1',
+        '-vf', 'scale=1920:1080,setsar=1:1',
         '-pix_fmt', 'yuv420p',
         'output.mp4'
     );
