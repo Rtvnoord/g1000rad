@@ -175,7 +175,7 @@ async function generateAndDownloadVideo(targetNumber) {
         ctx.save();
         ctx.translate(width / 2, height * 0.4); // Verplaats het rad hoger
         ctx.rotate(rotation * Math.PI / 180);
-        ctx.drawImage(wheel, -250, -250, 500, 500); // Vergroot naar 500x500
+        ctx.drawImage(wheel, -250, -250, 350, 350); 
         ctx.restore();
 
         if (i >= spinDuration) {
