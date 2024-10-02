@@ -7,13 +7,46 @@ const downloadVideoButton = document.getElementById('downloadVideo');
 const progressBar = document.getElementById('progressBar');
 const numberDisplay = document.getElementById('number-display');
 
+// Gemeenschappelijke render functie
+function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = false, numberScale = 1) {
+    const wheelSize = 350;
+    const numberSize = 180;
+
+    // Teken de achtergrond
+    ctx.drawImage(background, 0, 0, width, height);
+
+    // Teken het rad
+    ctx.save();
+    ctx.translate(width / 2, height * 0.45);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.drawImage(wheel, -wheelSize/2, -wheelSize/2, wheelSize, wheelSize);
+    ctx.restore();
+
+    // Teken het nummer als showNumber true is
+    if (showNumber) {
+        const numberBoxSize = numberSize * numberScale;
+        
+        ctx.fillStyle = '#ee7204';
+        ctx.fillRect((width - numberBoxSize) / 2, (height - numberBoxSize) * 0.45, numberBoxSize, numberBoxSize);
+        
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 3 * numberScale;
+        ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) * 0.45, numberBoxSize, numberBoxSize);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${90 * numberScale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(targetNumber, width / 2, height * 0.45);
+    }
+}
+
 // Functie om het rad te draaien
 function spinWheel(targetNumber) {
     // Verberg het nummer-container voordat het rad begint te draaien
     gsap.set("#number-container", { opacity: 0, scale: 0 });
 
     // Bereken het aantal graden dat het rad moet draaien
-    // We gaan ervan uit dat het rad 360 graden verdeeld over 1000 nummers heeft
     const degreesPerNumber = 360 / 1000;
     const degrees = targetNumber * degreesPerNumber;
     
@@ -22,26 +55,57 @@ function spinWheel(targetNumber) {
     const totalDegrees = degrees + extraSpins;
 
     // Animeer het rad
-    wheel.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)';
-    wheel.style.transform = `translate(-50%, -50%) rotate(${totalDegrees}deg)`;
+    const duration = 4; // 4 seconden
+    const fps = 60;
+    const totalFrames = duration * fps;
 
-    // Reset de transitie en toon het nummer na de animatie
-    setTimeout(() => {
-        wheel.style.transition = 'none';
-        wheel.style.transform = `translate(-50%, -50%) rotate(${degrees}deg)`;
-        showNumber(targetNumber);
-    }, 4000);
+    let frame = 0;
+    const animate = () => {
+        if (frame <= totalFrames) {
+            const progress = frame / totalFrames;
+            const currentRotation = easeOutCubic(progress) * totalDegrees;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 960;
+            canvas.height = 540;
+            const ctx = canvas.getContext('2d');
+
+            renderWheel(ctx, canvas.width, canvas.height, currentRotation, targetNumber);
+
+            // Update het wheel-container element
+            document.getElementById('wheel-container').innerHTML = '';
+            document.getElementById('wheel-container').appendChild(canvas);
+
+            frame++;
+            requestAnimationFrame(animate);
+        } else {
+            // Toon het nummer na de animatie
+            showNumber(targetNumber);
+        }
+    };
+
+    animate();
 }
 
 // Functie om het nummer te tonen
 function showNumber(number) {
-    const numberContainer = document.getElementById('number-container');
-    const numberDisplay = document.getElementById('number-display');
-    numberDisplay.textContent = number;
+    const canvas = document.createElement('canvas');
+    canvas.width = 960;
+    canvas.height = 540;
+    const ctx = canvas.getContext('2d');
 
-    gsap.to(numberContainer, {
-        opacity: 1,
-        scale: 1,
+    const degreesPerNumber = 360 / 1000;
+    const degrees = number * degreesPerNumber;
+
+    renderWheel(ctx, canvas.width, canvas.height, degrees, number, true);
+
+    // Update het wheel-container element
+    document.getElementById('wheel-container').innerHTML = '';
+    document.getElementById('wheel-container').appendChild(canvas);
+
+    gsap.from(canvas, {
+        opacity: 0,
+        scale: 0.5,
         duration: 0.8,
         ease: "back.out(1.7)"
     });
@@ -84,6 +148,14 @@ downloadVideoButton.disabled = true;
 let ffmpeg;
 let html2canvasLoaded = false;
 let generatedVideoBlob = null;
+let background;
+let wheel;
+
+// Laad de afbeeldingen bij het starten van de applicatie
+window.addEventListener('load', async () => {
+    background = await loadImage('background.jpg');
+    wheel = await loadImage('wheel.png');
+});
 
 // Disable the download button initially
 downloadVideoButton.disabled = true;
@@ -155,47 +227,21 @@ async function generateAndDownloadVideo(targetNumber) {
     canvas.height = height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    const background = await loadImage('background.jpg');
-    const wheel = await loadImage('wheel.png');
-
-    console.log('Alle afbeeldingen geladen, start frame generatie');
+    console.log('Start frame generatie');
 
     const extraSpins = Math.floor(Math.random() * 5 + 5) * 360; // 5 tot 10 extra rotaties
     const targetDegrees = targetNumber * (360 / 1000);
     const totalDegrees = targetDegrees + extraSpins;
 
-    let lastFrame;
     for (let i = 0; i < frameCount; i++) {
-        ctx.drawImage(background, 0, 0, width, height);
-        
         const progress = Math.min(i / spinDuration, 1);
         const easeProgress = easeOutCubic(progress);
         const rotation = easeProgress * totalDegrees;
         
-        ctx.save();
-        ctx.translate(width / 2, height * 0.4); // Verplaats het rad hoger
-        ctx.rotate(rotation * Math.PI / 180);
-        ctx.drawImage(wheel, -250, -250, 350, 350); 
-        ctx.restore();
+        const showNumber = i >= spinDuration;
+        const numberScale = showNumber ? Math.min((i - spinDuration) / 30, 1) : 0; // 1 seconde animatie
 
-        if (i >= spinDuration) {
-            // Toon en animeer het nummer
-            const numberScale = Math.min((i - spinDuration) / 30, 1); // 1 seconde animatie
-            const numberSize = 240 * numberScale;
-            
-            ctx.fillStyle = '#ee7204';
-            ctx.fillRect((width - numberSize) / 2, (height - numberSize) * 0.4, numberSize, numberSize);
-            
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 4 * numberScale;
-            ctx.strokeRect((width - numberSize) / 2, (height - numberSize) * 0.4, numberSize, numberSize);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = `bold ${120 * numberScale}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(targetNumber, width / 2, height * 0.4);
-        }
+        renderWheel(ctx, width, height, rotation, targetNumber, showNumber, numberScale);
 
         const frameData = canvas.toDataURL('image/png').split(',')[1];
         ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
