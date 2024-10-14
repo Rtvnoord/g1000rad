@@ -4,11 +4,12 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Voeg headers toe voor Cross-Origin Isolation en SharedArrayBuffer ondersteuning
+// Add headers for Cross-Origin Isolation and SharedArrayBuffer support
 app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cross-Origin-Isolation', 'enable-cors');
     next();
 });
 
