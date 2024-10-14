@@ -97,6 +97,12 @@ async function loadDependencies() {
     await ffmpeg.load();
     console.log('FFmpeg is geladen');
 
+    // Load audio file
+    const audioResponse = await fetch('geluid_rad.wav');
+    const audioArrayBuffer = await audioResponse.arrayBuffer();
+    ffmpeg.FS('writeFile', 'geluid_rad.wav', new Uint8Array(audioArrayBuffer));
+    console.log('Audio file is geladen');
+
     // Load html2canvas
     if (typeof html2canvas === 'undefined') {
         return new Promise((resolve, reject) => {
@@ -182,9 +188,13 @@ async function generateVideo(targetNumber) {
     await ffmpeg.run(
         '-framerate', `${fps}`,
         '-i', 'frame_%05d.png',
+        '-i', 'geluid_rad.wav',
         '-c:v', 'libx264',
         '-preset', 'slow',
         '-crf', '22',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-shortest',
         '-vf', 'scale=1920:1080,setsar=1:1',
         '-pix_fmt', 'yuv420p',
         'output.mp4'
@@ -202,6 +212,7 @@ async function generateVideo(targetNumber) {
         ffmpeg.FS('unlink', `frame_${i.toString().padStart(5, '0')}.png`);
     }
     ffmpeg.FS('unlink', 'output.mp4');
+    ffmpeg.FS('unlink', 'geluid_rad.wav');
     
     spinWheelButton.disabled = false;
     spinWheelButton.textContent = 'Genereer video';
