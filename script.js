@@ -213,16 +213,30 @@ async function generateVideo(targetNumber) {
     });
 }
 
-function downloadVideo(blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'wheel_spin.mp4';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    console.log('MP4 download gestart');
+async function downloadVideo(blob) {
+    // Download MP4
+    const videoUrl = URL.createObjectURL(blob);
+    const videoLink = document.createElement('a');
+    videoLink.href = videoUrl;
+    videoLink.download = 'wheel_spin.mp4';
+    document.body.appendChild(videoLink);
+    videoLink.click();
+    document.body.removeChild(videoLink);
+    URL.revokeObjectURL(videoUrl);
+
+    // Download WAV
+    const audioResponse = await fetch('geluid_rad.wav');
+    const audioBlob = await audioResponse.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audioLink = document.createElement('a');
+    audioLink.href = audioUrl;
+    audioLink.download = 'geluid_rad.wav';
+    document.body.appendChild(audioLink);
+    audioLink.click();
+    document.body.removeChild(audioLink);
+    URL.revokeObjectURL(audioUrl);
+
+    console.log('MP4 en WAV download gestart');
 }
 
 function loadImage(src) {
