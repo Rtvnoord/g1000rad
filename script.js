@@ -147,78 +147,70 @@ async function generateVideo(targetNumber) {
     const width = 1920;
     const height = 1080;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const worker = new Worker('videoWorker.js');
 
-    console.log('Start frame generatie');
+    worker.onmessage = async function(e) {
+        if (e.data.type === 'progress') {
+            updateProgress(e.data.progress, e.data.stage);
+        } else if (e.data.type === 'complete') {
+            console.log('Frames gegenereerd, start video rendering');
+            
+            ffmpeg.setProgress(({ ratio }) => {
+                const encodingProgress = Math.round(80 + ratio * 20); // 80% tot 100%
+                updateProgress(encodingProgress, 'encoding');
+            });
 
-    const extraSpins = Math.floor(Math.random() * 5 + 5) * 360; // 5 tot 10 extra rotaties
-    const targetDegrees = targetNumber * (360 / 1000);
-    const totalDegrees = targetDegrees + extraSpins;
+            for (let i = 0; i < frameCount; i++) {
+                const frameData = e.data.frames[i];
+                ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, frameData);
+            }
 
-    for (let i = 0; i < frameCount; i++) {
-        const progress = Math.min(i / spinDuration, 1);
-        const easeProgress = easeOutCubic(progress);
-        const rotation = easeProgress * totalDegrees;
-        
-        const showNumber = i >= spinDuration;
-        const numberScale = showNumber ? easeOutElastic(Math.min((i - spinDuration) / 25, 1)) : 0; // Snellere animatie met easing
+            await ffmpeg.run(
+                '-framerate', `${fps}`,
+                '-i', 'frame_%05d.png',
+                '-i', 'geluid_rad.wav',
+                '-c:v', 'libx264',
+                '-preset', 'slow',
+                '-crf', '22',
+                '-c:a', 'aac',
+                '-b:a', '192k',
+                '-shortest',
+                '-vf', 'scale=1920:1080,setsar=1:1',
+                '-pix_fmt', 'yuv420p',
+                'output.mp4'
+            );
+            
+            console.log('Video rendering voltooid');
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+            generatedVideoBlob = new Blob([data.buffer], { type: 'video/mp4' });
 
-        renderWheel(ctx, width, height, rotation, targetNumber, showNumber, numberScale);
+            // Update progress to 100% when ready to download
+            updateProgress(100, 'complete');
 
-        const frameData = canvas.toDataURL('image/png').split(',')[1];
-        ffmpeg.FS('writeFile', `frame_${i.toString().padStart(5, '0')}.png`, Uint8Array.from(atob(frameData), c => c.charCodeAt(0)));
-        
-        const frameProgress = Math.round((i / frameCount) * 80); // Max 80% voor frame generatie
-        updateProgress(frameProgress, 'frames');
+            // Opruimen
+            for (let i = 0; i < frameCount; i++) {
+                ffmpeg.FS('unlink', `frame_${i.toString().padStart(5, '0')}.png`);
+            }
+            ffmpeg.FS('unlink', 'output.mp4');
+            ffmpeg.FS('unlink', 'geluid_rad.wav');
+            
+            spinWheelButton.disabled = false;
+            spinWheelButton.textContent = 'Genereer video';
+            downloadVideoButton.disabled = false;
+            downloadVideoButton.textContent = 'Download video';
+            console.log('Video generatie voltooid');
+        }
+    };
 
-        // Voeg een kleine pauze toe om de UI te laten updaten
-        await new Promise(resolve => setTimeout(resolve, 0));
-    }
-
-    console.log('Alle frames gegenereerd, start video rendering');
-    
-    ffmpeg.setProgress(({ ratio }) => {
-        const encodingProgress = Math.round(80 + ratio * 20); // 80% tot 100%
-        updateProgress(encodingProgress, 'encoding');
+    worker.postMessage({
+        targetNumber,
+        frameCount,
+        spinDuration,
+        width,
+        height,
+        background: background.src,
+        wheelImage: wheelImage.src
     });
-
-    await ffmpeg.run(
-        '-framerate', `${fps}`,
-        '-i', 'frame_%05d.png',
-        '-i', 'geluid_rad.wav',
-        '-c:v', 'libx264',
-        '-preset', 'slow',
-        '-crf', '22',
-        '-c:a', 'aac',
-        '-b:a', '192k',
-        '-shortest',
-        '-vf', 'scale=1920:1080,setsar=1:1',
-        '-pix_fmt', 'yuv420p',
-        'output.mp4'
-    );
-    
-    console.log('Video rendering voltooid');
-    const data = ffmpeg.FS('readFile', 'output.mp4');
-    generatedVideoBlob = new Blob([data.buffer], { type: 'video/mp4' });
-
-    // Update progress to 100% when ready to download
-    updateProgress(100, 'complete');
-
-    // Opruimen
-    for (let i = 0; i < frameCount; i++) {
-        ffmpeg.FS('unlink', `frame_${i.toString().padStart(5, '0')}.png`);
-    }
-    ffmpeg.FS('unlink', 'output.mp4');
-    ffmpeg.FS('unlink', 'geluid_rad.wav');
-    
-    spinWheelButton.disabled = false;
-    spinWheelButton.textContent = 'Genereer video';
-    downloadVideoButton.disabled = false;
-    downloadVideoButton.textContent = 'Download video';
-    console.log('Video generatie voltooid');
 }
 
 function downloadVideo(blob) {
@@ -231,27 +223,6 @@ function downloadVideo(blob) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     console.log('MP4 download gestart');
-}
-
-function downloadVideo(blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'wheel_spin.mp4';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    console.log('MP4 download gestart');
-}
-
-function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-}
-
-function easeOutElastic(t) {
-    const p = 0.3;
-    return Math.pow(2, -10 * t) * Math.sin((t - p / 4) * (2 * Math.PI) / p) + 1;
 }
 
 function loadImage(src) {
