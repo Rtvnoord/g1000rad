@@ -13,19 +13,20 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
 
     if (showNumber) {
         const numberBoxSize = numberSize * numberScale;
+        const yOffset = -wheelSize / 4; // Verplaats het nummer naar boven
         
         ctx.fillStyle = '#ee7204';
-        ctx.fillRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2, numberBoxSize, numberBoxSize);
+        ctx.fillRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2 + yOffset, numberBoxSize, numberBoxSize);
         
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 5 * numberScale;
-        ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2, numberBoxSize, numberBoxSize);
+        ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2 + yOffset, numberBoxSize, numberBoxSize);
         
         ctx.fillStyle = 'white';
         ctx.font = `bold ${150 * numberScale}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(targetNumber, width / 2, height / 2);
+        ctx.fillText(targetNumber, width / 2, height / 2 + yOffset);
     }
 }
 
