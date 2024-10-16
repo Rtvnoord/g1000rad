@@ -171,14 +171,15 @@ async function generateVideo(targetNumber) {
                 '-i', 'geluid_rad.wav',
                 '-c:v', 'libx264',
                 '-preset', 'veryslow',
-                '-crf', '18',
+                '-crf', '17',
                 '-c:a', 'aac',
                 '-b:a', '320k',
                 '-shortest',
                 '-vf', 'scale=1920:1080,setsar=1:1',
                 '-pix_fmt', 'yuv420p',
                 '-profile:v', 'high',
-                '-level', '4.2',
+                '-level', '5.1',
+                '-x264-params', 'ref=5:bframes=3:b-adapt=2:me=umh:subme=10:trellis=2:deblock=-1,-1',
                 '-movflags', '+faststart',
                 'output.mp4'
             );
