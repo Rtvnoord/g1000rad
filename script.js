@@ -170,13 +170,16 @@ async function generateVideo(targetNumber) {
                 '-i', 'frame_%05d.png',
                 '-i', 'geluid_rad.wav',
                 '-c:v', 'libx264',
-                '-preset', 'slow',
-                '-crf', '22',
+                '-preset', 'veryslow',
+                '-crf', '18',
                 '-c:a', 'aac',
-                '-b:a', '192k',
+                '-b:a', '320k',
                 '-shortest',
                 '-vf', 'scale=1920:1080,setsar=1:1',
                 '-pix_fmt', 'yuv420p',
+                '-profile:v', 'high',
+                '-level', '4.2',
+                '-movflags', '+faststart',
                 'output.mp4'
             );
             
