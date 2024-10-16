@@ -8,10 +8,12 @@ def csv_to_json(csv_file_path, json_file_path):
     for encoding in encodings:
         try:
             with open(csv_file_path, 'r', encoding=encoding) as csv_file:
-                csv_reader = csv.reader(csv_file)
-                for index, row in enumerate(csv_reader, start=1):
-                    if len(row) >= 2:
-                        data[str(index)] = {"artist": row[0], "song": row[1]}
+                csv_reader = csv.reader(csv_file, delimiter=';')
+                next(csv_reader)  # Skip the header row
+                for row in csv_reader:
+                    if len(row) >= 3:
+                        position, artist, song = row[0], row[1], row[2]
+                        data[position] = {"artist": artist, "song": song}
             print(f"Bestand succesvol gelezen met encoding: {encoding}")
             break
         except UnicodeDecodeError:
