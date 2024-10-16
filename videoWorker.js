@@ -40,13 +40,14 @@ function easeOutElastic(t) {
 }
 
 self.onmessage = async function(e) {
-    const { targetNumber, frameCount, spinDuration, width, height, background, wheelImage } = e.data;
+    const { targetNumber, frameCount, spinDuration, width, height, background, wheelImage, wheelData } = e.data;
 
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
     self.background = await createImageBitmap(await fetch(background).then(r => r.blob()));
     self.wheelImage = await createImageBitmap(await fetch(wheelImage).then(r => r.blob()));
+    self.wheelData = wheelData;
 
     const extraSpins = Math.floor(Math.random() * 5 + 5) * 360;
     const targetDegrees = targetNumber * (360 / 1000);
