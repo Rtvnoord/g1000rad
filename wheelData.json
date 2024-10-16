@@ -1,7 +1,5 @@
 {
   "1": {"artist": "Artiest 1", "song": "Lied 1"},
   "2": {"artist": "Artiest 2", "song": "Lied 2"},
-  "3": {"artist": "Artiest 3", "song": "Lied 3"},
-  ...
-  "1000": {"artist": "Artiest 1000", "song": "Lied 1000"}
+  "3": {"artist": "Artiest 3", "song": "Lied 3"}
 }
