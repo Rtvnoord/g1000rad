@@ -5,6 +5,17 @@ const spinWheelButton = document.getElementById('spinWheel');
 const downloadVideoButton = document.getElementById('downloadVideo');
 const progressBar = document.getElementById('progressBar');
 
+let wheelData = {};
+
+// Laad de wheelData bij het starten van de applicatie
+fetch('wheelData.json')
+    .then(response => response.json())
+    .then(data => {
+        wheelData = data;
+        console.log('Wheel data geladen');
+    })
+    .catch(error => console.error('Fout bij het laden van wheel data:', error));
+
 // Gemeenschappelijke render functie
 function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = false, numberScale = 1) {
     const wheelSize = 800; // Vergroot het rad
@@ -38,6 +49,14 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(targetNumber, width / 2, height / 2 + yOffset);
+
+        // Toon artiest en nummer
+        if (wheelData[targetNumber]) {
+            ctx.font = `bold ${50 * numberScale}px Arial`;
+            ctx.fillText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 100);
+            ctx.font = `${40 * numberScale}px Arial`;
+            ctx.fillText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 160);
+        }
     }
 }
 
@@ -214,7 +233,8 @@ async function generateVideo(targetNumber) {
         width,
         height,
         background: background.src,
-        wheelImage: wheelImage.src
+        wheelImage: wheelImage.src,
+        wheelData: wheelData
     });
 }
 
