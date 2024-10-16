@@ -13,7 +13,7 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
 
     if (showNumber) {
         const numberBoxSize = numberSize * numberScale;
-        const yOffset = -wheelSize / 4; // Verplaats het nummer naar boven
+        const yOffset = -100; // Verplaats het vierkant 100 pixels omhoog
         
         ctx.fillStyle = '#ee7204';
         ctx.fillRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2 + yOffset, numberBoxSize, numberBoxSize);
