@@ -45,16 +45,22 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
         ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2 + yOffset, numberBoxSize, numberBoxSize);
         
         ctx.fillStyle = 'white';
-        ctx.font = `bold ${150 * numberScale}px Arial`;
+        ctx.strokeStyle = 'orange';
+        ctx.lineWidth = 5 * numberScale;
+        ctx.font = `bold ${150 * numberScale}px DINPro-Bold`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.strokeText(targetNumber, width / 2, height / 2 + yOffset);
         ctx.fillText(targetNumber, width / 2, height / 2 + yOffset);
 
         // Toon artiest en nummer
         if (wheelData[targetNumber]) {
-            ctx.font = `bold ${40 * numberScale}px Arial`;
+            ctx.font = `bold ${40 * numberScale}px DINPro-Bold`;
+            ctx.lineWidth = 2 * numberScale;
+            ctx.strokeText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180 * numberScale);
             ctx.fillText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180 * numberScale);
-            ctx.font = `${30 * numberScale}px Arial`;
+            ctx.font = `${30 * numberScale}px DINPro-Bold`;
+            ctx.strokeText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230 * numberScale);
             ctx.fillText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230 * numberScale);
         }
     }
@@ -170,6 +176,9 @@ async function generateVideo(targetNumber) {
     // Load custom font
     const fontResponse = await fetch('DINPro-Bold.otf');
     const fontData = await fontResponse.arrayBuffer();
+    const font = new FontFace('DINPro-Bold', fontData);
+    await font.load();
+    document.fonts.add(font);
 
     const worker = new Worker('videoWorker.js');
 
