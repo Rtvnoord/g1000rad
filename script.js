@@ -53,9 +53,9 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
         // Toon artiest en nummer
         if (wheelData[targetNumber]) {
             ctx.font = `bold ${40 * numberScale}px Arial`;
-            ctx.fillText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180);
+            ctx.fillText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180 * numberScale);
             ctx.font = `${30 * numberScale}px Arial`;
-            ctx.fillText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230);
+            ctx.fillText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230 * numberScale);
         }
     }
 }
@@ -234,7 +234,7 @@ async function generateVideo(targetNumber) {
         height,
         background: background.src,
         wheelImage: wheelImage.src,
-        wheelData: wheelData
+        wheelData: JSON.parse(JSON.stringify(wheelData))
     });
 }
 
