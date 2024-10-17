@@ -167,6 +167,10 @@ async function generateVideo(targetNumber) {
     const width = 1920;
     const height = 1080;
 
+    // Load custom font
+    const fontResponse = await fetch('DINPro-Bold.otf');
+    const fontData = await fontResponse.arrayBuffer();
+
     const worker = new Worker('videoWorker.js');
 
     worker.onmessage = async function(e) {
@@ -234,7 +238,8 @@ async function generateVideo(targetNumber) {
         height,
         background: background.src,
         wheelImage: wheelImage.src,
-        wheelData: JSON.parse(JSON.stringify(wheelData))
+        wheelData: JSON.parse(JSON.stringify(wheelData)),
+        fontData: fontData
     });
 }
 

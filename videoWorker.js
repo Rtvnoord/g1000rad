@@ -23,16 +23,22 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
         ctx.strokeRect((width - numberBoxSize) / 2, (height - numberBoxSize) / 2 + yOffset, numberBoxSize, numberBoxSize);
         
         ctx.fillStyle = 'white';
-        ctx.font = `bold ${150 * numberScale}px Arial`;
+        ctx.strokeStyle = 'orange';
+        ctx.lineWidth = 5 * numberScale;
+        ctx.font = `bold ${150 * numberScale}px DINPro-Bold`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.strokeText(targetNumber, width / 2, height / 2 + yOffset);
         ctx.fillText(targetNumber, width / 2, height / 2 + yOffset);
 
         // Toon artiest en nummer
         if (self.wheelData[targetNumber]) {
-            ctx.font = `bold ${40 * numberScale}px Arial`;
+            ctx.font = `bold ${40 * numberScale}px DINPro-Bold`;
+            ctx.lineWidth = 2 * numberScale;
+            ctx.strokeText(self.wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180 * numberScale);
             ctx.fillText(self.wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180 * numberScale);
-            ctx.font = `${30 * numberScale}px Arial`;
+            ctx.font = `${30 * numberScale}px DINPro-Bold`;
+            ctx.strokeText(self.wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230 * numberScale);
             ctx.fillText(self.wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230 * numberScale);
         }
     }
@@ -48,7 +54,7 @@ function easeOutElastic(t) {
 }
 
 self.onmessage = async function(e) {
-    const { targetNumber, frameCount, spinDuration, width, height, background, wheelImage, wheelData } = e.data;
+    const { targetNumber, frameCount, spinDuration, width, height, background, wheelImage, wheelData, fontData } = e.data;
 
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -56,6 +62,11 @@ self.onmessage = async function(e) {
     self.background = await createImageBitmap(await fetch(background).then(r => r.blob()));
     self.wheelImage = await createImageBitmap(await fetch(wheelImage).then(r => r.blob()));
     self.wheelData = wheelData;
+
+    // Load custom font
+    const font = new FontFace('DINPro-Bold', fontData);
+    await font.load();
+    self.font = font;
 
     const extraSpins = Math.floor(Math.random() * 5 + 5) * 360;
     const targetDegrees = targetNumber * (360 / 1000);
