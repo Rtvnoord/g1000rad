@@ -27,6 +27,14 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(targetNumber, width / 2, height / 2 + yOffset);
+
+        // Toon artiest en nummer
+        if (self.wheelData[targetNumber]) {
+            ctx.font = `bold ${40 * numberScale}px Arial`;
+            ctx.fillText(self.wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180 * numberScale);
+            ctx.font = `${30 * numberScale}px Arial`;
+            ctx.fillText(self.wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230 * numberScale);
+        }
     }
 }
 
