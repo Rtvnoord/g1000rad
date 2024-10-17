@@ -52,10 +52,10 @@ function renderWheel(ctx, width, height, rotation, targetNumber, showNumber = fa
 
         // Toon artiest en nummer
         if (wheelData[targetNumber]) {
-            ctx.font = `bold ${50 * numberScale}px Arial`;
-            ctx.fillText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 100);
-            ctx.font = `${40 * numberScale}px Arial`;
-            ctx.fillText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 160);
+            ctx.font = `bold ${40 * numberScale}px Arial`;
+            ctx.fillText(wheelData[targetNumber].artist, width / 2, height / 2 + yOffset + 180);
+            ctx.font = `${30 * numberScale}px Arial`;
+            ctx.fillText(wheelData[targetNumber].song, width / 2, height / 2 + yOffset + 230);
         }
     }
 }
