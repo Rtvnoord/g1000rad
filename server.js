@@ -324,16 +324,14 @@ function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
     // Animatie effecten - veel sneller
     const fadeIn = Math.min(progress * 8, 1); // Zeer snelle fade in
     const overshootScale = elasticEaseOut(Math.min(progress * 3, 1)); // Snellere overshoot scale
-    const slideUp = Math.max(0, (progress - 0.1) * 4); // Snellere slide up na 10%
     
     if (fadeIn <= 0) return;
     
     ctx.save();
     ctx.globalAlpha = fadeIn;
     
-    // Bereken posities met animatie - hoger gepositioneerd
-    const baseY = centerY + 100; // Hoger dan 180
-    const animatedY = baseY - (slideUp * 80); // Meer slide up beweging
+    // Bereken posities - vaste positie zonder slide up
+    const animatedY = centerY + 100; // Vaste positie
     
     // Oranje achtergrond met overshoot scale
     const bgWidth = 700 * overshootScale;
