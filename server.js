@@ -123,6 +123,26 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
             console.log('Wheel image geladen');
         }
 
+        // Register custom fonts
+        const fontsDir = path.join(__dirname, 'fonts');
+        if (fs.existsSync(fontsDir)) {
+            const fontFiles = fs.readdirSync(fontsDir).filter(file => 
+                file.endsWith('.ttf') || file.endsWith('.otf')
+            );
+            
+            for (const fontFile of fontFiles) {
+                const fontPath = path.join(fontsDir, fontFile);
+                const fontName = path.parse(fontFile).name;
+                try {
+                    const { registerFont } = require('canvas');
+                    registerFont(fontPath, { family: fontName });
+                    console.log(`Font geregistreerd: ${fontName}`);
+                } catch (error) {
+                    console.warn(`Kon font niet registreren: ${fontFile}`, error.message);
+                }
+            }
+        }
+
         const fps = 30;
         const videoDuration = 16; // Vaste duur van 16 seconden voor geluid sync
         const spinDuration = 10; // Rad draait 10 seconden
@@ -293,47 +313,76 @@ function drawPointer(ctx, centerX, centerY) {
 }
 
 function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
+    // Overshoot animatie (elastic ease-out)
+    const elasticEaseOut = (t) => {
+        if (t === 0) return 0;
+        if (t === 1) return 1;
+        const c4 = (2 * Math.PI) / 3;
+        return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+    };
+    
     // Animatie effecten
-    const fadeIn = Math.min(progress * 2, 1); // Fade in over eerste helft
-    const slideUp = Math.max(0, (progress - 0.3) * 2); // Slide up na 30%
-    const scale = Math.min(progress * 1.5, 1); // Scale up effect
+    const fadeIn = Math.min(progress * 3, 1); // Snelle fade in
+    const overshootScale = elasticEaseOut(Math.min(progress * 1.2, 1)); // Overshoot scale
+    const slideUp = Math.max(0, (progress - 0.2) * 1.5); // Slide up na 20%
+    
+    if (fadeIn <= 0) return;
     
     ctx.save();
     ctx.globalAlpha = fadeIn;
     
     // Bereken posities met animatie
-    const baseY = centerY + 200;
-    const animatedY = baseY - (slideUp * 50);
+    const baseY = centerY + 180;
+    const animatedY = baseY - (slideUp * 60);
     
-    // Achtergrond voor tekst
-    const bgWidth = 600 * scale;
-    const bgHeight = 200 * scale;
+    // Oranje achtergrond met overshoot scale
+    const bgWidth = 700 * overshootScale;
+    const bgHeight = 220 * overshootScale;
     const bgX = centerX - bgWidth / 2;
     const bgY = animatedY - bgHeight / 2;
     
-    // Semi-transparante achtergrond
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    // Oranje achtergrond
+    ctx.fillStyle = '#FF6B35'; // Oranje kleur
     ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
     
-    // Border
+    // Witte stroke
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.strokeRect(bgX, bgY, bgWidth, bgHeight);
     
-    // Nummer (groot)
+    // Probeer custom font te gebruiken, fallback naar Arial
+    const customFont = 'Montserrat'; // Pas aan naar je font naam
+    const fallbackFont = 'Arial, sans-serif';
+    
+    // Nummer (groot) met overshoot
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.floor(72 * scale)}px Arial`;
+    ctx.font = `bold ${Math.floor(80 * overshootScale)}px ${customFont}, ${fallbackFont}`;
     ctx.textAlign = 'center';
-    ctx.fillText(`#${winningEntry.nummer}`, centerX, animatedY - 40);
+    ctx.textBaseline = 'middle';
+    
+    // Text shadow voor nummer
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    
+    ctx.fillText(`#${winningEntry.nummer}`, centerX, animatedY - 50);
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     
     // Artiest
-    ctx.font = `bold ${Math.floor(36 * scale)}px Arial`;
+    ctx.font = `bold ${Math.floor(42 * overshootScale)}px ${customFont}, ${fallbackFont}`;
+    ctx.fillStyle = '#ffffff';
     ctx.fillText(winningEntry.artiest, centerX, animatedY + 10);
     
     // Titel
-    ctx.font = `${Math.floor(28 * scale)}px Arial`;
-    ctx.fillStyle = '#cccccc';
-    ctx.fillText(winningEntry.titel, centerX, animatedY + 50);
+    ctx.font = `${Math.floor(32 * overshootScale)}px ${customFont}, ${fallbackFont}`;
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillText(winningEntry.titel, centerX, animatedY + 55);
     
     ctx.restore();
 }
