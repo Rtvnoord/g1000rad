@@ -125,7 +125,10 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
 
         const fps = 30;
         const videoDuration = 16; // Vaste duur van 16 seconden voor geluid sync
+        const spinDuration = 10; // Rad draait 10 seconden
+        const textDuration = 6; // Tekst animatie 6 seconden
         const totalFrames = Math.floor(videoDuration * fps);
+        const spinFrames = Math.floor(spinDuration * fps);
         const canvas = createCanvas(1920, 1080);
         const ctx = canvas.getContext('2d');
 
@@ -154,24 +157,35 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Calculate rotation with easing over 16 seconds
-            const progress = frame / totalFrames;
-            const easeOut = 1 - Math.pow(1 - progress, 3); // Smooth deceleration
-            
-            // Start with multiple rotations and end at winning position
-            // Snelheid bepaalt aantal rotaties: 1=4 rotaties, 5=12 rotaties
-            const initialSpins = 2 + (spinSpeed * 2); 
-            const totalRotation = (Math.PI * 2 * initialSpins) + winningAngle;
-            const currentRotation = totalRotation * easeOut;
+            if (frame < spinFrames) {
+                // Spinning phase (first 10 seconds)
+                const progress = frame / spinFrames;
+                const easeOut = 1 - Math.pow(1 - progress, 3); // Smooth deceleration
+                
+                // Start with multiple rotations and end at winning position
+                // Snelheid bepaalt aantal rotaties: 1=4 rotaties, 5=12 rotaties
+                const initialSpins = 2 + (spinSpeed * 2); 
+                const totalRotation = (Math.PI * 2 * initialSpins) + winningAngle;
+                const currentRotation = totalRotation * easeOut;
 
-            // Draw spinning wheel
-            drawSpinningWheel(ctx, canvas.width / 2, canvas.height / 2, wheelImage, currentRotation);
+                // Draw spinning wheel
+                drawSpinningWheel(ctx, canvas.width / 2, canvas.height / 2, wheelImage, currentRotation);
 
-            // Draw pointer/indicator
-            drawPointer(ctx, canvas.width / 2, canvas.height / 2);
-
-            // Draw title
-            drawTitle(ctx, canvas.width / 2);
+                // Draw pointer/indicator
+                drawPointer(ctx, canvas.width / 2, canvas.height / 2);
+            } else {
+                // Text animation phase (last 6 seconds)
+                const textFrame = frame - spinFrames;
+                const textProgress = textFrame / (totalFrames - spinFrames);
+                
+                // Draw final wheel position (stopped)
+                const finalRotation = (Math.PI * 2 * (2 + (spinSpeed * 2))) + winningAngle;
+                drawSpinningWheel(ctx, canvas.width / 2, canvas.height / 2, wheelImage, finalRotation);
+                drawPointer(ctx, canvas.width / 2, canvas.height / 2);
+                
+                // Draw winning entry with animation
+                drawWinningEntry(ctx, canvas.width / 2, canvas.height / 2, winningEntry, textProgress);
+            }
 
             // Save frame
             const buffer = canvas.toBuffer('image/png');
@@ -278,17 +292,50 @@ function drawPointer(ctx, centerX, centerY) {
     ctx.stroke();
 }
 
-function drawTitle(ctx, centerX) {
-    // Draw title at the top
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#333333';
-    ctx.lineWidth = 2;
-    ctx.font = 'bold 64px Arial';
-    ctx.textAlign = 'center';
+function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
+    // Animatie effecten
+    const fadeIn = Math.min(progress * 2, 1); // Fade in over eerste helft
+    const slideUp = Math.max(0, (progress - 0.3) * 2); // Slide up na 30%
+    const scale = Math.min(progress * 1.5, 1); // Scale up effect
     
-    // Draw text with outline
-    ctx.strokeText('Grunneger 1000 Rad', centerX, 120);
-    ctx.fillText('Grunneger 1000 Rad', centerX, 120);
+    ctx.save();
+    ctx.globalAlpha = fadeIn;
+    
+    // Bereken posities met animatie
+    const baseY = centerY + 200;
+    const animatedY = baseY - (slideUp * 50);
+    
+    // Achtergrond voor tekst
+    const bgWidth = 600 * scale;
+    const bgHeight = 200 * scale;
+    const bgX = centerX - bgWidth / 2;
+    const bgY = animatedY - bgHeight / 2;
+    
+    // Semi-transparante achtergrond
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
+    
+    // Border
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(bgX, bgY, bgWidth, bgHeight);
+    
+    // Nummer (groot)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.floor(72 * scale)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`#${winningEntry.nummer}`, centerX, animatedY - 40);
+    
+    // Artiest
+    ctx.font = `bold ${Math.floor(36 * scale)}px Arial`;
+    ctx.fillText(winningEntry.artiest, centerX, animatedY + 10);
+    
+    // Titel
+    ctx.font = `${Math.floor(28 * scale)}px Arial`;
+    ctx.fillStyle = '#cccccc';
+    ctx.fillText(winningEntry.titel, centerX, animatedY + 50);
+    
+    ctx.restore();
 }
 
 app.get('/api/download/:sessionId', (req, res) => {
