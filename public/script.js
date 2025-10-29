@@ -70,12 +70,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Download button
+    // Download button with status check
     downloadBtn.addEventListener('click', async function() {
         if (currentSessionId) {
             try {
                 // Disable button and show loading state
                 downloadBtn.disabled = true;
+                downloadBtn.innerHTML = '⏳ Video wordt voorbereid...';
+                
+                // Check if video is ready
+                let isReady = false;
+                let attempts = 0;
+                const maxAttempts = 60; // 60 seconden maximum wachten
+                
+                while (!isReady && attempts < maxAttempts) {
+                    const statusResponse = await fetch(`/api/status/${currentSessionId}`);
+                    const status = await statusResponse.json();
+                    
+                    if (status.ready) {
+                        isReady = true;
+                        break;
+                    }
+                    
+                    // Wacht 1 seconde en probeer opnieuw
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    attempts++;
+                    
+                    // Update button text
+                    downloadBtn.innerHTML = `⏳ Video wordt gegenereerd... (${attempts}s)`;
+                }
+                
+                if (!isReady) {
+                    throw new Error('Video generatie duurt te lang');
+                }
+                
+                // Video is klaar, start download
                 downloadBtn.innerHTML = '⏳ Video wordt gedownload...';
                 
                 const response = await fetch(`/api/download/${currentSessionId}`);

@@ -387,6 +387,24 @@ function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
     ctx.restore();
 }
 
+// Video status check endpoint
+app.get('/api/status/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    const videoPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
+    
+    if (fs.existsSync(videoPath)) {
+        const stats = fs.statSync(videoPath);
+        res.json({
+            ready: true,
+            size: stats.size
+        });
+    } else {
+        res.json({
+            ready: false
+        });
+    }
+});
+
 app.get('/api/download/:sessionId', (req, res) => {
     const { sessionId } = req.params;
     const videoPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
