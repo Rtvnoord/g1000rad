@@ -88,17 +88,28 @@ async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntr
     }
 
     try {
-        // Load background image if it exists
+        // Load background and wheel images
         let backgroundImage = null;
+        let wheelImage = null;
+        
         const backgroundPath = path.join(__dirname, 'assets', 'background.jpg');
+        const wheelPath = path.join(__dirname, 'assets', 'wheel.png');
+        
         if (fs.existsSync(backgroundPath)) {
             backgroundImage = await loadImage(backgroundPath);
+        }
+        
+        if (fs.existsSync(wheelPath)) {
+            wheelImage = await loadImage(wheelPath);
         }
 
         const fps = 30;
         const totalFrames = Math.floor((spinDuration / 1000) * fps);
         const canvas = createCanvas(1920, 1080);
         const ctx = canvas.getContext('2d');
+
+        // Calculate winning position (convert nummer to angle)
+        const winningAngle = (winningEntry.nummer / 1000) * Math.PI * 2;
 
         // Generate frames
         for (let frame = 0; frame < totalFrames; frame++) {
@@ -117,14 +128,23 @@ async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntr
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Calculate rotation
+            // Calculate rotation with easing
             const progress = frame / totalFrames;
-            const easeOut = 1 - Math.pow(1 - progress, 3); // Easing function
-            const totalRotation = (Math.PI * 2 * 5) + (Math.PI * 2 * (winningEntry.nummer / 1000)); // 5 full rotations + position
+            const easeOut = 1 - Math.pow(1 - progress, 3); // Smooth deceleration
+            
+            // Start with multiple rotations and end at winning position
+            const initialSpins = 5; // Number of full rotations
+            const totalRotation = (Math.PI * 2 * initialSpins) + winningAngle;
             const currentRotation = totalRotation * easeOut;
 
-            // Draw wheel
-            drawWheel(ctx, canvas.width / 2, canvas.height / 2, 400, currentRotation, allEntries, winningEntry);
+            // Draw spinning wheel
+            drawSpinningWheel(ctx, canvas.width / 2, canvas.height / 2, wheelImage, currentRotation);
+
+            // Draw pointer/indicator
+            drawPointer(ctx, canvas.width / 2, canvas.height / 2);
+
+            // Draw title
+            drawTitle(ctx, canvas.width / 2);
 
             // Save frame
             const buffer = canvas.toBuffer('image/png');
@@ -166,69 +186,55 @@ async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntr
     }
 }
 
-function drawWheel(ctx, centerX, centerY, radius, rotation, allEntries, winningEntry) {
-    const segmentCount = Math.min(allEntries.length, 100); // Limit segments for performance
-    const segmentAngle = (Math.PI * 2) / segmentCount;
-    
+function drawSpinningWheel(ctx, centerX, centerY, wheelImage, rotation) {
+    if (!wheelImage) {
+        // Fallback: draw a simple colored circle if wheel.png is not available
+        ctx.fillStyle = '#ff6b6b';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 400, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+    }
+
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(rotation);
-
-    // Draw wheel segments
-    for (let i = 0; i < segmentCount; i++) {
-        const startAngle = i * segmentAngle;
-        const endAngle = (i + 1) * segmentAngle;
-        const entry = allEntries[Math.floor((i / segmentCount) * allEntries.length)];
-        
-        // Alternate colors
-        ctx.fillStyle = i % 2 === 0 ? '#ff6b6b' : '#4ecdc4';
-        
-        // Draw segment
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Draw border
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Draw text if segment is large enough
-        if (segmentCount <= 50) {
-            ctx.save();
-            ctx.rotate(startAngle + segmentAngle / 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`#${entry.nummer}`, radius * 0.3, 5);
-            ctx.restore();
-        }
-    }
-
+    
+    // Draw wheel image centered
+    const wheelSize = 800; // Size of the wheel in pixels
+    ctx.drawImage(wheelImage, -wheelSize/2, -wheelSize/2, wheelSize, wheelSize);
+    
     ctx.restore();
+}
 
-    // Draw pointer
+function drawPointer(ctx, centerX, centerY) {
+    // Draw pointer/indicator at the top
+    const pointerSize = 40;
+    
     ctx.fillStyle = '#333333';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    
     ctx.beginPath();
-    ctx.moveTo(centerX + radius + 20, centerY);
-    ctx.lineTo(centerX + radius - 20, centerY - 20);
-    ctx.lineTo(centerX + radius - 20, centerY + 20);
+    ctx.moveTo(centerX, centerY - 400 - pointerSize);
+    ctx.lineTo(centerX - pointerSize/2, centerY - 400);
+    ctx.lineTo(centerX + pointerSize/2, centerY - 400);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
+}
 
-    // Draw center circle
-    ctx.fillStyle = '#333333';
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw title
+function drawTitle(ctx, centerX) {
+    // Draw title at the top
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 48px Arial';
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 2;
+    ctx.font = 'bold 64px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Grunneger 1000 Rad', centerX, 100);
+    
+    // Draw text with outline
+    ctx.strokeText('Grunneger 1000 Rad', centerX, 120);
+    ctx.fillText('Grunneger 1000 Rad', centerX, 120);
 }
 
 app.get('/api/download/:sessionId', (req, res) => {
