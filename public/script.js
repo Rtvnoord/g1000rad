@@ -70,41 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Download button with status check
+    // Download button - simplified since video is already ready
     downloadBtn.addEventListener('click', async function() {
         if (currentSessionId) {
             try {
                 // Disable button and show loading state
                 downloadBtn.disabled = true;
-                downloadBtn.innerHTML = '⏳ Video wordt voorbereid...';
-                
-                // Check if video is ready
-                let isReady = false;
-                let attempts = 0;
-                const maxAttempts = 60; // 60 seconden maximum wachten
-                
-                while (!isReady && attempts < maxAttempts) {
-                    const statusResponse = await fetch(`/api/status/${currentSessionId}`);
-                    const status = await statusResponse.json();
-                    
-                    if (status.ready) {
-                        isReady = true;
-                        break;
-                    }
-                    
-                    // Wacht 1 seconde en probeer opnieuw
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    attempts++;
-                    
-                    // Update button text
-                    downloadBtn.innerHTML = `⏳ Video wordt gegenereerd... (${attempts}s)`;
-                }
-                
-                if (!isReady) {
-                    throw new Error('Video generatie duurt te lang');
-                }
-                
-                // Video is klaar, start download
                 downloadBtn.innerHTML = '⏳ Video wordt gedownload...';
                 
                 const response = await fetch(`/api/download/${currentSessionId}`);
@@ -161,7 +132,50 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('winningArtist').textContent = winningEntry.artist;
         document.getElementById('winningTitle').textContent = winningEntry.title;
         
+        // Toon resultaat maar verberg download sectie
         resultArea.classList.remove('hidden');
+        document.querySelector('.download-section').style.display = 'none';
+        
+        // Start polling voor video status
+        checkVideoStatus();
+    }
+
+    async function checkVideoStatus() {
+        const statusElement = document.querySelector('.video-status');
+        statusElement.style.display = 'block';
+        statusElement.innerHTML = '🎬 Video wordt gegenereerd...';
+        
+        let attempts = 0;
+        const maxAttempts = 120; // 2 minuten maximum wachten
+        
+        const checkInterval = setInterval(async () => {
+            try {
+                const response = await fetch(`/api/status/${currentSessionId}`);
+                const status = await response.json();
+                
+                attempts++;
+                
+                if (status.ready) {
+                    clearInterval(checkInterval);
+                    statusElement.innerHTML = '✅ Video is klaar!';
+                    setTimeout(() => {
+                        statusElement.style.display = 'none';
+                        document.querySelector('.download-section').style.display = 'block';
+                    }, 1000);
+                } else {
+                    statusElement.innerHTML = `🎬 Video wordt gegenereerd... (${attempts}s)`;
+                }
+                
+                if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    statusElement.innerHTML = '❌ Video generatie duurt te lang';
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+                clearInterval(checkInterval);
+                statusElement.innerHTML = '❌ Fout bij controleren video status';
+            }
+        }, 1000);
     }
 
     // Load G1000 data on page load to verify connection
