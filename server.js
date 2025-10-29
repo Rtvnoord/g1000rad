@@ -51,8 +51,11 @@ app.post('/api/generate-wheel', async (req, res) => {
         
         // Start video generation in background
         generateWheelVideo(sessionId, winningEntry, spinSpeed, g1000Data)
+            .then(() => {
+                console.log(`Video succesvol gegenereerd voor sessie ${sessionId}`);
+            })
             .catch(error => {
-                console.error('Fout bij video generatie:', error);
+                console.error('Fout bij video generatie voor sessie', sessionId, ':', error);
             });
         
         res.json({
@@ -76,15 +79,22 @@ app.post('/api/generate-wheel', async (req, res) => {
 
 // Video generation function
 async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries) {
+    console.log(`Start video generatie voor sessie ${sessionId}`);
+    
     const outputPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
     const framesDir = path.join(__dirname, 'temp', sessionId);
+    
+    console.log(`Output pad: ${outputPath}`);
+    console.log(`Frames directory: ${framesDir}`);
     
     // Create directories
     if (!fs.existsSync(path.dirname(outputPath))) {
         fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        console.log('Videos directory aangemaakt');
     }
     if (!fs.existsSync(framesDir)) {
         fs.mkdirSync(framesDir, { recursive: true });
+        console.log('Temp frames directory aangemaakt');
     }
 
     try {
@@ -95,12 +105,22 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
         const backgroundPath = path.join(__dirname, 'assets', 'background.jpg');
         const wheelPath = path.join(__dirname, 'assets', 'wheel.png');
         
+        console.log(`Zoek background: ${backgroundPath}`);
+        console.log(`Background bestaat: ${fs.existsSync(backgroundPath)}`);
+        
         if (fs.existsSync(backgroundPath)) {
+            console.log('Laad background image...');
             backgroundImage = await loadImage(backgroundPath);
+            console.log('Background image geladen');
         }
         
+        console.log(`Zoek wheel: ${wheelPath}`);
+        console.log(`Wheel bestaat: ${fs.existsSync(wheelPath)}`);
+        
         if (fs.existsSync(wheelPath)) {
+            console.log('Laad wheel image...');
             wheelImage = await loadImage(wheelPath);
+            console.log('Wheel image geladen');
         }
 
         const fps = 30;
@@ -112,8 +132,13 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
         // Calculate winning position (convert nummer to angle)
         const winningAngle = (winningEntry.nummer / 1000) * Math.PI * 2;
 
+        console.log(`Genereer ${totalFrames} frames...`);
+        
         // Generate frames
         for (let frame = 0; frame < totalFrames; frame++) {
+            if (frame % 60 === 0) { // Log elke 2 seconden (30fps)
+                console.log(`Frame ${frame}/${totalFrames} (${Math.round((frame/totalFrames)*100)}%)`);
+            }
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -154,9 +179,14 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
             fs.writeFileSync(framePath, buffer);
         }
 
+        console.log('Start FFmpeg video generatie...');
+        
         // Create video from frames using ffmpeg with audio
         await new Promise((resolve, reject) => {
             const audioPath = path.join(__dirname, 'assets', 'geluid_rad.wav');
+            
+            console.log(`Audio pad: ${audioPath}`);
+            console.log(`Audio bestaat: ${fs.existsSync(audioPath)}`);
             
             let ffmpegCommand = ffmpeg()
                 .input(path.join(framesDir, 'frame_%06d.png'))
@@ -164,6 +194,7 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
             
             // Add audio if it exists
             if (fs.existsSync(audioPath)) {
+                console.log('Voeg audio toe aan video...');
                 ffmpegCommand = ffmpegCommand.input(audioPath);
             }
             
@@ -175,24 +206,35 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
                     '-t 16' // Zorg dat video precies 16 seconden duurt
                 ])
                 .output(outputPath)
+                .on('start', (commandLine) => {
+                    console.log('FFmpeg gestart met commando:', commandLine);
+                })
+                .on('progress', (progress) => {
+                    console.log('FFmpeg progress:', Math.round(progress.percent || 0) + '%');
+                })
                 .on('end', () => {
                     console.log(`Video met geluid gegenereerd: ${outputPath}`);
+                    console.log(`Video bestand grootte: ${fs.statSync(outputPath).size} bytes`);
                     // Clean up temp frames
                     fs.rmSync(framesDir, { recursive: true, force: true });
+                    console.log('Temp frames opgeruimd');
                     resolve();
                 })
                 .on('error', (err) => {
                     console.error('FFmpeg error:', err);
+                    console.error('FFmpeg stderr:', err.message);
                     reject(err);
                 })
                 .run();
         });
 
     } catch (error) {
-        console.error('Fout bij video generatie:', error);
+        console.error('Fout bij video generatie voor sessie', sessionId, ':', error);
+        console.error('Error stack:', error.stack);
         // Clean up on error
         if (fs.existsSync(framesDir)) {
             fs.rmSync(framesDir, { recursive: true, force: true });
+            console.log('Temp frames opgeruimd na fout');
         }
         throw error;
     }
@@ -254,11 +296,17 @@ app.get('/api/download/:sessionId', (req, res) => {
     const videoPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
     
     console.log(`Download aangevraagd voor sessie: ${sessionId}`);
+    console.log(`Video pad: ${videoPath}`);
+    console.log(`Video bestaat: ${fs.existsSync(videoPath)}`);
     
     if (fs.existsSync(videoPath)) {
+        const stats = fs.statSync(videoPath);
+        console.log(`Video bestand grootte: ${stats.size} bytes`);
+        
         // Set proper headers for file download
         res.setHeader('Content-Type', 'video/mp4');
         res.setHeader('Content-Disposition', `attachment; filename="grunneger_1000_rad_${sessionId}.mp4"`);
+        res.setHeader('Content-Length', stats.size);
         
         // Stream the file
         const fileStream = fs.createReadStream(videoPath);
@@ -270,7 +318,12 @@ app.get('/api/download/:sessionId', (req, res) => {
                 res.status(500).json({ error: 'Fout bij downloaden video' });
             }
         });
+        
+        fileStream.on('end', () => {
+            console.log(`Video download voltooid voor sessie ${sessionId}`);
+        });
     } else {
+        console.log(`Video niet gevonden voor sessie ${sessionId}`);
         res.status(404).json({ 
             error: 'Video nog niet klaar of niet gevonden' 
         });
