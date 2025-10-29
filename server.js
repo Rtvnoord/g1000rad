@@ -190,9 +190,6 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
 
                 // Draw spinning wheel
                 drawSpinningWheel(ctx, canvas.width / 2, canvas.height / 2, wheelImage, currentRotation);
-
-                // Draw pointer/indicator
-                drawPointer(ctx, canvas.width / 2, canvas.height / 2);
             } else {
                 // Text animation phase (last 6 seconds)
                 const textFrame = frame - spinFrames;
@@ -201,7 +198,6 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
                 // Draw final wheel position (stopped)
                 const finalRotation = (Math.PI * 2 * (2 + (spinSpeed * 2))) + winningAngle;
                 drawSpinningWheel(ctx, canvas.width / 2, canvas.height / 2, wheelImage, finalRotation);
-                drawPointer(ctx, canvas.width / 2, canvas.height / 2);
                 
                 // Draw winning entry with animation
                 drawWinningEntry(ctx, canvas.width / 2, canvas.height / 2, winningEntry, textProgress);
@@ -296,20 +292,7 @@ function drawSpinningWheel(ctx, centerX, centerY, wheelImage, rotation) {
 }
 
 function drawPointer(ctx, centerX, centerY) {
-    // Draw pointer/indicator at the top
-    const pointerSize = 40;
-    
-    ctx.fillStyle = '#333333';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY - 400 - pointerSize);
-    ctx.lineTo(centerX - pointerSize/2, centerY - 400);
-    ctx.lineTo(centerX + pointerSize/2, centerY - 400);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    // Pointer weggehaald - geen zwart pinnetje meer
 }
 
 function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {

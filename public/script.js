@@ -143,17 +143,21 @@ document.addEventListener('DOMContentLoaded', function() {
     async function checkVideoStatus() {
         const statusElement = document.querySelector('.video-status');
         statusElement.style.display = 'block';
-        statusElement.innerHTML = '🎬 Video wordt gegenereerd...';
         
         let attempts = 0;
         const maxAttempts = 120; // 2 minuten maximum wachten
+        const startTime = Date.now();
+        
+        // Start timer direct
+        statusElement.innerHTML = '🎬 Video wordt gegenereerd... (0s)';
         
         const checkInterval = setInterval(async () => {
             try {
                 const response = await fetch(`/api/status/${currentSessionId}`);
                 const status = await response.json();
                 
-                attempts++;
+                // Bereken werkelijke tijd sinds start
+                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
                 
                 if (status.ready) {
                     clearInterval(checkInterval);
@@ -163,10 +167,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.querySelector('.download-section').style.display = 'block';
                     }, 1000);
                 } else {
-                    statusElement.innerHTML = `🎬 Video wordt gegenereerd... (${attempts}s)`;
+                    statusElement.innerHTML = `🎬 Video wordt gegenereerd... (${elapsedTime}s)`;
                 }
                 
-                if (attempts >= maxAttempts) {
+                if (elapsedTime >= maxAttempts) {
                     clearInterval(checkInterval);
                     statusElement.innerHTML = '❌ Video generatie duurt te lang';
                 }
