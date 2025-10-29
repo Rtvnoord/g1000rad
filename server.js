@@ -256,9 +256,17 @@ app.get('/api/download/:sessionId', (req, res) => {
     console.log(`Download aangevraagd voor sessie: ${sessionId}`);
     
     if (fs.existsSync(videoPath)) {
-        res.download(videoPath, `grunneger_1000_rad_${sessionId}.mp4`, (err) => {
-            if (err) {
-                console.error('Download error:', err);
+        // Set proper headers for file download
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Content-Disposition', `attachment; filename="grunneger_1000_rad_${sessionId}.mp4"`);
+        
+        // Stream the file
+        const fileStream = fs.createReadStream(videoPath);
+        fileStream.pipe(res);
+        
+        fileStream.on('error', (err) => {
+            console.error('File stream error:', err);
+            if (!res.headersSent) {
                 res.status(500).json({ error: 'Fout bij downloaden video' });
             }
         });

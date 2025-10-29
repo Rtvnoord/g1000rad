@@ -215,8 +215,13 @@ input[type="range"] {
     transition: background 0.2s;
 }
 
-.download-btn:hover {
+.download-btn:hover:not(:disabled) {
     background: #218838;
+}
+
+.download-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
 }
 
 .file-info {

@@ -71,9 +71,46 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Download button
-    downloadBtn.addEventListener('click', function() {
+    downloadBtn.addEventListener('click', async function() {
         if (currentSessionId) {
-            window.open(`/api/download/${currentSessionId}`, '_blank');
+            try {
+                // Disable button and show loading state
+                downloadBtn.disabled = true;
+                downloadBtn.innerHTML = '⏳ Video wordt gedownload...';
+                
+                const response = await fetch(`/api/download/${currentSessionId}`);
+                
+                if (response.ok) {
+                    // Create blob and download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `grunneger_1000_rad_${currentSessionId}.mp4`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    // Success feedback
+                    downloadBtn.innerHTML = '✅ Video gedownload!';
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = '📥 Download Video';
+                        downloadBtn.disabled = false;
+                    }, 3000);
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Download mislukt');
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                downloadBtn.innerHTML = '❌ Download mislukt';
+                setTimeout(() => {
+                    downloadBtn.innerHTML = '📥 Download Video';
+                    downloadBtn.disabled = false;
+                }, 3000);
+                alert('Er is een fout opgetreden bij het downloaden: ' + error.message);
+            }
         }
     });
 
