@@ -1,0 +1,109 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const modeRadios = document.querySelectorAll('input[name="mode"]');
+    const manualNumberInput = document.getElementById('manualNumber');
+    const spinDurationSlider = document.getElementById('spinDuration');
+    const durationValueSpan = document.getElementById('durationValue');
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const resultArea = document.getElementById('resultArea');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentSessionId = null;
+
+    // Mode switching
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            manualNumberInput.disabled = this.value === 'random';
+            if (this.value === 'random') {
+                manualNumberInput.value = '';
+            }
+        });
+    });
+
+    // Duration slider
+    spinDurationSlider.addEventListener('input', function() {
+        durationValueSpan.textContent = parseFloat(this.value).toFixed(1) + 's';
+    });
+
+    // Generate button
+    generateBtn.addEventListener('click', async function() {
+        const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+        const manualNumber = manualNumberInput.value;
+        const spinDuration = parseFloat(spinDurationSlider.value) * 1000; // Convert to milliseconds
+
+        // Validation
+        if (selectedMode === 'manual' && (!manualNumber || manualNumber < 1 || manualNumber > 1000)) {
+            alert('Voer een geldig nummer in tussen 1 en 1000');
+            return;
+        }
+
+        // Show loading
+        showLoading();
+
+        try {
+            const response = await fetch('/api/generate-wheel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selectedNumber: selectedMode === 'manual' ? parseInt(manualNumber) : null,
+                    isRandom: selectedMode === 'random',
+                    spinDuration: spinDuration
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                currentSessionId = result.sessionId;
+                showResult(result.winningEntry);
+            } else {
+                throw new Error(result.error || 'Onbekende fout');
+            }
+
+        } catch (error) {
+            console.error('Error generating wheel:', error);
+            alert('Er is een fout opgetreden: ' + error.message);
+            hideLoading();
+        }
+    });
+
+    // Download button
+    downloadBtn.addEventListener('click', function() {
+        if (currentSessionId) {
+            window.open(`/api/download/${currentSessionId}`, '_blank');
+        }
+    });
+
+    function showLoading() {
+        generateBtn.disabled = true;
+        loadingIndicator.classList.remove('hidden');
+        resultArea.classList.add('hidden');
+    }
+
+    function hideLoading() {
+        generateBtn.disabled = false;
+        loadingIndicator.classList.add('hidden');
+    }
+
+    function showResult(winningEntry) {
+        hideLoading();
+        
+        document.getElementById('winningPosition').textContent = winningEntry.position;
+        document.getElementById('winningArtist').textContent = winningEntry.artist;
+        document.getElementById('winningTitle').textContent = winningEntry.title;
+        
+        resultArea.classList.remove('hidden');
+    }
+
+    // Load G1000 data on page load to verify connection
+    fetch('/api/g1000-data')
+        .then(response => response.json())
+        .then(data => {
+            console.log(`G1000 data geladen: ${data.length} nummers`);
+        })
+        .catch(error => {
+            console.error('Kon G1000 data niet laden:', error);
+        });
+});

@@ -1,0 +1,52 @@
+[
+  {
+    "position": 1,
+    "artist": "Queen",
+    "title": "Bohemian Rhapsody"
+  },
+  {
+    "position": 2,
+    "artist": "Led Zeppelin",
+    "title": "Stairway to Heaven"
+  },
+  {
+    "position": 3,
+    "artist": "The Beatles",
+    "title": "Hey Jude"
+  },
+  {
+    "position": 4,
+    "artist": "Pink Floyd",
+    "title": "Comfortably Numb"
+  },
+  {
+    "position": 5,
+    "artist": "The Rolling Stones",
+    "title": "Paint It Black"
+  },
+  {
+    "position": 6,
+    "artist": "AC/DC",
+    "title": "Highway to Hell"
+  },
+  {
+    "position": 7,
+    "artist": "Nirvana",
+    "title": "Smells Like Teen Spirit"
+  },
+  {
+    "position": 8,
+    "artist": "The Eagles",
+    "title": "Hotel California"
+  },
+  {
+    "position": 9,
+    "artist": "Deep Purple",
+    "title": "Smoke on the Water"
+  },
+  {
+    "position": 10,
+    "artist": "Black Sabbath",
+    "title": "Paranoid"
+  }
+]

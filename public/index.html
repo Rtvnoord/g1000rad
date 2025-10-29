@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grunneger 1000 Rad Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎡 Grunneger 1000 Rad Generator</h1>
+            <p>Genereer een draaiend rad met de nummers van de Grunneger 1000</p>
+        </header>
+
+        <main>
+            <div class="controls">
+                <div class="input-group">
+                    <label>
+                        <input type="radio" name="mode" value="random" checked>
+                        Random nummer
+                    </label>
+                </div>
+                
+                <div class="input-group">
+                    <label>
+                        <input type="radio" name="mode" value="manual">
+                        Specifiek nummer:
+                    </label>
+                    <input type="number" id="manualNumber" min="1" max="1000" placeholder="1-1000" disabled>
+                </div>
+
+                <div class="input-group">
+                    <label for="spinDuration">Draai duur (seconden):</label>
+                    <input type="range" id="spinDuration" min="2" max="10" value="3" step="0.5">
+                    <span id="durationValue">3.0s</span>
+                </div>
+
+                <button id="generateBtn" class="generate-btn">
+                    🎯 Genereer Rad Video
+                </button>
+            </div>
+
+            <div class="preview-area">
+                <div id="loadingIndicator" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Video wordt gegenereerd...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <div id="resultArea" class="result hidden">
+                    <h3>🎉 Winnend Nummer!</h3>
+                    <div class="winning-entry">
+                        <div class="position">#<span id="winningPosition"></span></div>
+                        <div class="song-info">
+                            <div class="artist" id="winningArtist"></div>
+                            <div class="title" id="winningTitle"></div>
+                        </div>
+                    </div>
+                    <div class="download-section">
+                        <button id="downloadBtn" class="download-btn">
+                            📥 Download Video
+                        </button>
+                        <p class="file-info">MP4 video met geluid</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>ℹ️ Hoe werkt het?</h3>
+                <ul>
+                    <li>Kies voor een random nummer of voer een specifiek nummer in (1-1000)</li>
+                    <li>Stel de draai duur in (2-10 seconden)</li>
+                    <li>Klik op "Genereer Rad Video" om de animatie te maken</li>
+                    <li>Download de gegenereerde MP4 video met geluid</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
