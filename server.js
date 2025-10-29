@@ -27,7 +27,7 @@ app.get('/api/g1000-data', (req, res) => {
 
 app.post('/api/generate-wheel', async (req, res) => {
     try {
-        const { selectedNumber, isRandom, spinDuration } = req.body;
+        const { selectedNumber, isRandom, spinSpeed } = req.body;
         
         let winningEntry;
         if (isRandom) {
@@ -47,10 +47,10 @@ app.post('/api/generate-wheel', async (req, res) => {
         const sessionId = Date.now().toString();
         
         console.log(`Genereer rad video voor nummer ${winningEntry.nummer}: ${winningEntry.artiest} - ${winningEntry.titel}`);
-        console.log(`Draai duur: ${spinDuration}ms`);
+        console.log(`Draai snelheid: ${spinSpeed}`);
         
         // Start video generation in background
-        generateWheelVideo(sessionId, winningEntry, spinDuration, g1000Data)
+        generateWheelVideo(sessionId, winningEntry, spinSpeed, g1000Data)
             .catch(error => {
                 console.error('Fout bij video generatie:', error);
             });
@@ -75,7 +75,7 @@ app.post('/api/generate-wheel', async (req, res) => {
 });
 
 // Video generation function
-async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntries) {
+async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries) {
     const outputPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
     const framesDir = path.join(__dirname, 'temp', sessionId);
     
@@ -104,7 +104,8 @@ async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntr
         }
 
         const fps = 30;
-        const totalFrames = Math.floor((spinDuration / 1000) * fps);
+        const videoDuration = 16; // Vaste duur van 16 seconden voor geluid sync
+        const totalFrames = Math.floor(videoDuration * fps);
         const canvas = createCanvas(1920, 1080);
         const ctx = canvas.getContext('2d');
 
@@ -128,12 +129,13 @@ async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntr
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // Calculate rotation with easing
+            // Calculate rotation with easing over 16 seconds
             const progress = frame / totalFrames;
             const easeOut = 1 - Math.pow(1 - progress, 3); // Smooth deceleration
             
             // Start with multiple rotations and end at winning position
-            const initialSpins = 5; // Number of full rotations
+            // Snelheid bepaalt aantal rotaties: 1=4 rotaties, 5=12 rotaties
+            const initialSpins = 2 + (spinSpeed * 2); 
             const totalRotation = (Math.PI * 2 * initialSpins) + winningAngle;
             const currentRotation = totalRotation * easeOut;
 
@@ -152,19 +154,29 @@ async function generateWheelVideo(sessionId, winningEntry, spinDuration, allEntr
             fs.writeFileSync(framePath, buffer);
         }
 
-        // Create video from frames using ffmpeg
+        // Create video from frames using ffmpeg with audio
         await new Promise((resolve, reject) => {
-            ffmpeg()
+            const audioPath = path.join(__dirname, 'assets', 'geluid_rad.wav');
+            
+            let ffmpegCommand = ffmpeg()
                 .input(path.join(framesDir, 'frame_%06d.png'))
-                .inputFPS(fps)
+                .inputFPS(fps);
+            
+            // Add audio if it exists
+            if (fs.existsSync(audioPath)) {
+                ffmpegCommand = ffmpegCommand.input(audioPath);
+            }
+            
+            ffmpegCommand
                 .videoCodec('libx264')
                 .outputOptions([
                     '-pix_fmt yuv420p',
-                    '-crf 23'
+                    '-crf 23',
+                    '-t 16' // Zorg dat video precies 16 seconden duurt
                 ])
                 .output(outputPath)
                 .on('end', () => {
-                    console.log(`Video gegenereerd: ${outputPath}`);
+                    console.log(`Video met geluid gegenereerd: ${outputPath}`);
                     // Clean up temp frames
                     fs.rmSync(framesDir, { recursive: true, force: true });
                     resolve();

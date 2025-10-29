@@ -22,14 +22,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Duration slider
     spinDurationSlider.addEventListener('input', function() {
-        durationValueSpan.textContent = parseFloat(this.value).toFixed(1) + 's';
+        const speedLabels = ['', 'Langzaam', 'Rustig', 'Normaal', 'Snel', 'Zeer snel'];
+        durationValueSpan.textContent = speedLabels[parseInt(this.value)];
     });
 
     // Generate button
     generateBtn.addEventListener('click', async function() {
         const selectedMode = document.querySelector('input[name="mode"]:checked').value;
         const manualNumber = manualNumberInput.value;
-        const spinDuration = parseFloat(spinDurationSlider.value) * 1000; // Convert to milliseconds
+        const spinSpeed = parseInt(spinDurationSlider.value); // 1-5 speed setting
 
         // Validation
         if (selectedMode === 'manual' && (!manualNumber || manualNumber < 1 || manualNumber > 1000)) {
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     selectedNumber: selectedMode === 'manual' ? parseInt(manualNumber) : null,
                     isRandom: selectedMode === 'random',
-                    spinDuration: spinDuration
+                    spinSpeed: spinSpeed
                 })
             });
 
