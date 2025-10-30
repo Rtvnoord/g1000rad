@@ -314,11 +314,11 @@ function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
     ctx.globalAlpha = fadeIn;
     
     // Bereken posities - vaste positie zonder slide up
-    const animatedY = centerY + 100; // Vaste positie
+    const animatedY = centerY + 50; // Hoger gepositioneerd (was 100)
     
     // Oranje achtergrond met overshoot scale
     const bgWidth = 700 * overshootScale;
-    const bgHeight = 220 * overshootScale;
+    const bgHeight = 180 * overshootScale; // Lager vlak (was 220)
     const bgX = centerX - bgWidth / 2;
     const bgY = animatedY - bgHeight / 2;
     
