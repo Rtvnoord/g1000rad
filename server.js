@@ -3,12 +3,16 @@ const path = require('path');
 const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const { createCanvas, loadImage } = require('canvas');
+const { exec } = require('child_process');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
 app.use(express.static('public'));
+
+// Progress tracking
+const progressMap = new Map();
 
 // Load G1000 data
 let g1000Data = [];
@@ -45,17 +49,35 @@ app.post('/api/generate-wheel', async (req, res) => {
 
         // Generate session ID for this wheel generation
         const sessionId = Date.now().toString();
-        
+
+        // Initialize progress tracking
+        progressMap.set(sessionId, {
+            phase: 'starting',
+            progress: 0,
+            message: 'Video generatie gestart...'
+        });
+
         console.log(`Genereer rad video voor nummer ${winningEntry.nummer}: ${winningEntry.artiest} - ${winningEntry.titel}`);
         console.log(`Draai snelheid: ${spinSpeed}`);
-        
+
         // Start video generation in background
         generateWheelVideo(sessionId, winningEntry, spinSpeed, g1000Data)
-            .then(() => {
+            .then((outputPath) => {
                 console.log(`Video succesvol gegenereerd voor sessie ${sessionId}`);
+                progressMap.set(sessionId, {
+                    phase: 'completed',
+                    progress: 100,
+                    message: 'Video generatie voltooid!',
+                    videoPath: outputPath
+                });
             })
             .catch(error => {
                 console.error('Fout bij video generatie voor sessie', sessionId, ':', error);
+                progressMap.set(sessionId, {
+                    phase: 'error',
+                    progress: 0,
+                    message: 'Fout bij video generatie'
+                });
             });
         
         res.json({
@@ -77,20 +99,37 @@ app.post('/api/generate-wheel', async (req, res) => {
     }
 });
 
+// Helper function to sanitize filename
+function sanitizeFilename(text) {
+    return text
+        .replace(/[<>:"\/\\|?*]/g, '') // Verwijder ongeldige Windows karakters
+        .replace(/\s+/g, '-') // Vervang spaties door streepjes
+        .substring(0, 50); // Beperk lengte
+}
+
 // Video generation function
 async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries) {
     console.log(`Start video generatie voor sessie ${sessionId}`);
-    
-    const outputPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
+
+    // Gebruik lokale TEMP map van de gebruiker (Windows: %TEMP%, anderen: /tmp)
+    const tempDir = process.env.TEMP || process.env.TMP || '/tmp';
+    const videoOutputDir = path.join(tempDir, 'G1000_Rad_Videos');
+
+    // Maak bestandsnaam: g1000rad-[nummer]-[artiest]-[titel].mp4
+    const sanitizedArtist = sanitizeFilename(winningEntry.artiest);
+    const sanitizedTitle = sanitizeFilename(winningEntry.titel);
+    const filename = `g1000rad-${winningEntry.nummer}-${sanitizedArtist}-${sanitizedTitle}.mp4`;
+
+    const outputPath = path.join(videoOutputDir, filename);
     const framesDir = path.join(__dirname, 'temp', sessionId);
-    
+
     console.log(`Output pad: ${outputPath}`);
     console.log(`Frames directory: ${framesDir}`);
-    
+
     // Create directories
-    if (!fs.existsSync(path.dirname(outputPath))) {
-        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-        console.log('Videos directory aangemaakt');
+    if (!fs.existsSync(videoOutputDir)) {
+        fs.mkdirSync(videoOutputDir, { recursive: true });
+        console.log('Lokale videos directory aangemaakt:', videoOutputDir);
     }
     if (!fs.existsSync(framesDir)) {
         fs.mkdirSync(framesDir, { recursive: true });
@@ -156,10 +195,23 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
         const winningAngle = (winningEntry.nummer / 1000) * Math.PI * 2;
 
         console.log(`Genereer ${totalFrames} frames...`);
-        
+
+        progressMap.set(sessionId, {
+            phase: 'generating_frames',
+            progress: 0,
+            message: 'Frames genereren...'
+        });
+
         // Generate frames
         for (let frame = 0; frame < totalFrames; frame++) {
-            if (frame % 60 === 0) { // Log elke 2 seconden (30fps)
+            // Update progress elke 30 frames (elke seconde bij 30fps)
+            if (frame % 30 === 0) {
+                const frameProgress = Math.round((frame / totalFrames) * 70); // 70% van totaal voor frames
+                progressMap.set(sessionId, {
+                    phase: 'generating_frames',
+                    progress: frameProgress,
+                    message: `Frames genereren: ${frame}/${totalFrames} (${Math.round((frame/totalFrames)*100)}%)`
+                });
                 console.log(`Frame ${frame}/${totalFrames} (${Math.round((frame/totalFrames)*100)}%)`);
             }
             // Clear canvas
@@ -210,24 +262,30 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
         }
 
         console.log('Start FFmpeg video generatie...');
-        
+
+        progressMap.set(sessionId, {
+            phase: 'encoding',
+            progress: 70,
+            message: 'Video encoderen met FFmpeg...'
+        });
+
         // Create video from frames using ffmpeg with audio
         await new Promise((resolve, reject) => {
             const audioPath = path.join(__dirname, 'assets', 'geluid_rad.wav');
-            
+
             console.log(`Audio pad: ${audioPath}`);
             console.log(`Audio bestaat: ${fs.existsSync(audioPath)}`);
-            
+
             let ffmpegCommand = ffmpeg()
                 .input(path.join(framesDir, 'frame_%06d.png'))
                 .inputFPS(fps);
-            
+
             // Add audio if it exists
             if (fs.existsSync(audioPath)) {
                 console.log('Voeg audio toe aan video...');
                 ffmpegCommand = ffmpegCommand.input(audioPath);
             }
-            
+
             ffmpegCommand
                 .videoCodec('libx264')
                 .outputOptions([
@@ -240,7 +298,15 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
                     console.log('FFmpeg gestart met commando:', commandLine);
                 })
                 .on('progress', (progress) => {
-                    console.log('FFmpeg progress:', Math.round(progress.percent || 0) + '%');
+                    const ffmpegPercent = Math.round(progress.percent || 0);
+                    // FFmpeg neemt 30% van de totale progress (70-100%)
+                    const totalProgress = 70 + Math.round((ffmpegPercent / 100) * 30);
+                    progressMap.set(sessionId, {
+                        phase: 'encoding',
+                        progress: totalProgress,
+                        message: `Video encoderen: ${ffmpegPercent}%`
+                    });
+                    console.log('FFmpeg progress:', ffmpegPercent + '%');
                 })
                 .on('end', () => {
                     console.log(`Video met geluid gegenereerd: ${outputPath}`);
@@ -248,7 +314,7 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
                     // Clean up temp frames
                     fs.rmSync(framesDir, { recursive: true, force: true });
                     console.log('Temp frames opgeruimd');
-                    resolve();
+                    resolve(outputPath);
                 })
                 .on('error', (err) => {
                     console.error('FFmpeg error:', err);
@@ -257,6 +323,9 @@ async function generateWheelVideo(sessionId, winningEntry, spinSpeed, allEntries
                 })
                 .run();
         });
+
+        // Return the output path
+        return outputPath;
 
     } catch (error) {
         console.error('Fout bij video generatie voor sessie', sessionId, ':', error);
@@ -314,7 +383,7 @@ function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
     ctx.globalAlpha = fadeIn;
     
     // Bereken posities - vaste positie zonder slide up
-    const animatedY = centerY + 50; // Hoger gepositioneerd (was 100)
+    const animatedY = centerY - 100; // Hoog gepositioneerd boven het rad
     
     // Oranje achtergrond met overshoot scale
     const bgWidth = 700 * overshootScale;
@@ -368,17 +437,42 @@ function drawWinningEntry(ctx, centerX, centerY, winningEntry, progress) {
     ctx.restore();
 }
 
+// Video progress endpoint
+app.get('/api/progress/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    const progress = progressMap.get(sessionId);
+
+    if (progress) {
+        res.json(progress);
+    } else {
+        res.json({
+            phase: 'unknown',
+            progress: 0,
+            message: 'Geen voortgangs informatie beschikbaar'
+        });
+    }
+});
+
 // Video status check endpoint
 app.get('/api/status/:sessionId', (req, res) => {
     const { sessionId } = req.params;
-    const videoPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
-    
-    if (fs.existsSync(videoPath)) {
-        const stats = fs.statSync(videoPath);
-        res.json({
-            ready: true,
-            size: stats.size
-        });
+    const progress = progressMap.get(sessionId);
+
+    // Check if video is completed and has a path
+    if (progress && progress.phase === 'completed' && progress.videoPath) {
+        const videoPath = progress.videoPath;
+        if (fs.existsSync(videoPath)) {
+            const stats = fs.statSync(videoPath);
+            res.json({
+                ready: true,
+                size: stats.size,
+                path: videoPath
+            });
+        } else {
+            res.json({
+                ready: false
+            });
+        }
     } else {
         res.json({
             ready: false
@@ -386,43 +480,40 @@ app.get('/api/status/:sessionId', (req, res) => {
     }
 });
 
-app.get('/api/download/:sessionId', (req, res) => {
-    const { sessionId } = req.params;
-    const videoPath = path.join(__dirname, 'videos', `wheel_${sessionId}.mp4`);
-    
-    console.log(`Download aangevraagd voor sessie: ${sessionId}`);
-    console.log(`Video pad: ${videoPath}`);
-    console.log(`Video bestaat: ${fs.existsSync(videoPath)}`);
-    
-    if (fs.existsSync(videoPath)) {
-        const stats = fs.statSync(videoPath);
-        console.log(`Video bestand grootte: ${stats.size} bytes`);
-        
-        // Set proper headers for file download
-        res.setHeader('Content-Type', 'video/mp4');
-        res.setHeader('Content-Disposition', `attachment; filename="grunneger_1000_rad_${sessionId}.mp4"`);
-        res.setHeader('Content-Length', stats.size);
-        
-        // Stream the file
-        const fileStream = fs.createReadStream(videoPath);
-        fileStream.pipe(res);
-        
-        fileStream.on('error', (err) => {
-            console.error('File stream error:', err);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Fout bij downloaden video' });
-            }
-        });
-        
-        fileStream.on('end', () => {
-            console.log(`Video download voltooid voor sessie ${sessionId}`);
-        });
-    } else {
-        console.log(`Video niet gevonden voor sessie ${sessionId}`);
-        res.status(404).json({ 
-            error: 'Video nog niet klaar of niet gevonden' 
+// Download endpoint verwijderd - video's worden lokaal opgeslagen
+
+// Open folder endpoint
+app.post('/api/open-folder', (req, res) => {
+    const videoPath = req.body.path;
+
+    if (!videoPath) {
+        return res.status(400).json({
+            success: false,
+            error: 'Geen pad opgegeven'
         });
     }
+
+    console.log(`Open map voor: ${videoPath}`);
+
+    // Open Windows Explorer and select the file
+    // Using 'explorer /select,' to open explorer and highlight the file
+    const command = `explorer /select,"${videoPath}"`;
+
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error('Fout bij openen map:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Kon map niet openen: ' + error.message
+            });
+        }
+
+        console.log('Map geopend in Windows Verkenner');
+        res.json({
+            success: true,
+            message: 'Map geopend'
+        });
+    });
 });
 
 // Serve the main page
